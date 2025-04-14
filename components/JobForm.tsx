@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,21 +27,29 @@ import {
   History,
   CheckCircle2,
   AlertCircle,
+  Sparkles, // Added for Generate button
+  UploadCloud, // Alternative for upload icon
+  RefreshCw, // For changing resume
 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import toast from "react-hot-toast";
 import { Progress } from "./ui/progress";
-import ApplicationAnswers from "./ApplicationAnswers";
+// Removed ApplicationAnswers import as it's not used directly in this component anymore
+// import ApplicationAnswers from "./ApplicationAnswers";
 import { saveResponseToHistory } from "@/lib/storage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Separator } from "@/components/ui/separator"; // Added for visual separation
+import { motion, AnimatePresence } from "motion/react"; // Import motion and AnimatePresence
 
 const formSchema = z.object({
-  jobTitle: z.string().min(1),
-  company: z.string().min(1),
-  techStack: z.string().min(1),
-  description: z.string(),
-  companyDetails: z.string(),
+  jobTitle: z.string().min(1, "Job title is required"),
+  company: z.string().min(1, "Company name is required"),
+  techStack: z.string().min(1, "Tech stack is required"),
+  description: z
+    .string()
+    .min(50, "Please provide a more detailed description (min 50 chars)"), // Added min length
+  companyDetails: z.string().optional(), // Made optional, but still available
 });
 
 // Define a type for our application state
@@ -54,8 +64,39 @@ export default function JobForm() {
   const router = useRouter();
   const [resume, setResume] = useState<File | null>(null);
   const [parsedResume, setParsedResume] = useState<string>("");
-  const [generatedAnswers, setGeneratedAnswers] = useState(null);
+  // Removed generatedAnswers state as we redirect immediately
 
+  // --- Resume Loading Effect ---
+  useEffect(() => {
+    const storedResume = localStorage.getItem("parsedResume");
+    const storedDate = localStorage.getItem("resumeDate");
+    const RESUME_EXPIRY_DAYS = 7; // Let's expire the resume after 7 days
+
+    if (storedResume && storedDate) {
+      const resumeDate = new Date(storedDate);
+      const expiryDate = new Date(resumeDate);
+      expiryDate.setDate(resumeDate.getDate() + RESUME_EXPIRY_DAYS);
+
+      if (new Date() < expiryDate) {
+        setParsedResume(storedResume);
+        setResume({
+          name: "Cached Resume",
+          size: 0,
+          type: "application/pdf",
+          lastModified: resumeDate.getTime(),
+        } as File);
+        // Don't toast here, let the UI reflect it
+        console.log("Cached resume loaded.");
+      } else {
+        // Clear expired resume
+        localStorage.removeItem("parsedResume");
+        localStorage.removeItem("resumeDate");
+        console.log("Cached resume expired and removed.");
+      }
+    }
+  }, []);
+
+  // --- Unique ID Generation ---
   const generateRandomId = (length: number = 12): string => {
     const characters =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -68,84 +109,93 @@ export default function JobForm() {
     return result;
   };
 
-  // Unified state management
+  // --- State Management ---
   const [appState, setAppState] = useState<AppState>({
     status: "idle",
     progress: 0,
     stage: "",
   });
 
-  // Helper functions to update state
   const updateState = (updates: Partial<AppState>) => {
     setAppState((current) => ({ ...current, ...updates }));
   };
 
   const resetState = () => {
-    setAppState({
-      status: "idle",
-      progress: 0,
-      stage: "",
-    });
+    setAppState({ status: "idle", progress: 0, stage: "" });
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: { "application/pdf": [] },
-    maxFiles: 1,
-    onDrop: async (acceptedFiles) => {
-      const file = acceptedFiles[0];
-      setResume(file);
-      toast.success("Resume uploaded!");
-
-      // Parse the resume immediately after upload
-      await parseResume(file);
-    },
-  });
-
+  // --- Resume Parsing Logic ---
   const parseResume = async (file: File) => {
+    updateState({
+      status: "parsing",
+      progress: 10,
+      stage: "Uploading resume...",
+    });
     try {
-      // Update state to parsing
-      updateState({
-        status: "parsing",
-        progress: 20,
-        stage: "Parsing resume...",
-      });
-
       const resumeFormData = new FormData();
       resumeFormData.append("resume", file);
 
+      updateState({ progress: 20, stage: "Parsing resume with AI..." });
       const parseResponse = await fetch("/api/parse-resume", {
         method: "POST",
         body: resumeFormData,
       });
 
       if (!parseResponse.ok) {
-        throw new Error("Resume parsing failed");
+        const errorData = await parseResponse
+          .json()
+          .catch(() => ({ message: "Resume parsing failed" }));
+        throw new Error(errorData.message || "Resume parsing failed");
       }
 
       const parsedData = await parseResponse.json();
-      setParsedResume(JSON.stringify(parsedData));
+      const stringified = JSON.stringify(parsedData);
+      setParsedResume(stringified);
 
-      // Update state to ready for generation
-      updateState({
-        status: "idle",
-        progress: 50,
-        stage: "Resume parsed successfully",
-      });
+      localStorage.setItem("parsedResume", stringified);
+      localStorage.setItem("resumeDate", new Date().toISOString());
 
+      updateState({ status: "idle", progress: 50, stage: "Resume ready!" });
       toast.success("Resume parsed successfully!");
     } catch (error) {
       console.error("Error parsing resume:", error);
-      toast.error("Failed to parse resume. Please try again.");
-
-      // Update state to error
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to parse resume: ${errorMessage}`);
       updateState({
         status: "error",
         stage: "Error parsing resume",
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMessage,
+        progress: 0,
       });
+      // Clear potentially corrupted state
+      setResume(null);
+      setParsedResume("");
+      localStorage.removeItem("parsedResume");
+      localStorage.removeItem("resumeDate");
     }
   };
 
+  // --- Dropzone Hook ---
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    accept: { "application/pdf": [".pdf"] },
+    maxFiles: 1,
+    noClick: !!parsedResume, // Don't open file dialog if parsed
+    noKeyboard: !!parsedResume,
+    onDrop: async (acceptedFiles) => {
+      const file = acceptedFiles[0];
+      if (file) {
+        setResume(file);
+        toast.dismiss(); // Dismiss any previous toasts
+        toast.loading("Parsing resume...");
+        await parseResume(file);
+        toast.dismiss(); // Dismiss loading toast
+      }
+    },
+    disabled: appState.status === "parsing" || appState.status === "generating",
+  });
+
+  // --- Form Setup ---
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -157,385 +207,458 @@ export default function JobForm() {
     },
   });
 
+  // --- Form Submission Logic ---
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!parsedResume) {
+      toast.error("Please upload and parse your resume first.");
+      return;
+    }
+    updateState({
+      status: "generating",
+      progress: 60,
+      stage: "Preparing data...",
+    });
     try {
-      // Update state to generating
-      updateState({
-        status: "generating",
-        progress: 70,
-        stage: "Generating responses...",
-      });
-
       const formData = new FormData();
       formData.append("jobTitle", values.jobTitle);
       formData.append("company", values.company);
       formData.append("techStack", values.techStack);
       formData.append("description", values.description);
-      formData.append("companyDetails", values.companyDetails);
+      formData.append("companyDetails", values.companyDetails || ""); // Ensure empty string if null/undefined
       formData.append("parsedResume", parsedResume);
 
+      updateState({
+        progress: 70,
+        stage: "Generating AI responses (this may take a moment)...",
+      });
       const response = await fetch("/api/generate", {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Response generation failed" }));
+        throw new Error(errorData.message || "Network response was not ok");
       }
 
       const data = await response.json();
+      updateState({ progress: 90, stage: "Saving response..." });
 
-      // Save response to history and get the response ID
       const responseId = generateRandomId();
-      saveResponseToHistory(values.company, values.jobTitle, data, responseId);
+      saveResponseToHistory(
+        values.company,
+        values.jobTitle,
+        data,
+        responseId,
+        parseResume,
+      );
 
-      // Update state to complete
       updateState({
         status: "complete",
         progress: 100,
-        stage: "Responses generated successfully",
+        stage: "Responses generated successfully!",
       });
+      toast.success("Responses generated! Redirecting...");
 
-      toast.success("Responses generated successfully!");
-
-      // Redirect to the response page using the ID
+      // Redirect to the response page
       router.push(`/response/${responseId}`);
     } catch (error) {
       console.error("Form submission error", error);
-      toast.error("Failed to generate responses. Please try again.");
-
-      // Update state to error
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to generate responses: ${errorMessage}`);
       updateState({
         status: "error",
         stage: "Error generating responses",
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMessage,
+        progress: 0,
       });
     }
   };
 
-  const isFormDisabled =
+  // --- Control Variables ---
+  const isProcessing =
     appState.status === "parsing" || appState.status === "generating";
-  const isSubmitDisabled = isFormDisabled || !parsedResume;
+  const isResumeReady = !!parsedResume && appState.status !== "parsing";
+  const canSubmit = isResumeReady && !isProcessing;
 
-  const getStatusColor = () => {
-    switch (appState.status) {
-      case "complete":
-        return "bg-green-400";
-      case "error":
-        return "bg-red-400";
-      case "generating":
-      case "parsing":
-        return "bg-blue-400";
-      default:
-        return "bg-neutral-300";
+  // --- Helper Functions ---
+  const clearResume = () => {
+    localStorage.removeItem("parsedResume");
+    localStorage.removeItem("resumeDate");
+    setParsedResume("");
+    setResume(null);
+    updateState({ progress: 0, stage: "" }); // Reset progress related to resume
+    toast("Resume cache cleared. You can upload a new one.");
+  };
+
+  // --- Status Indicator Component ---
+  const StatusIndicator = () => {
+    if (appState.status === "idle" && !isResumeReady && appState.progress === 0)
+      return null; // Hide if truly idle initially
+    if (appState.status === "complete") return null; // Hide once complete and redirecting
+
+    let icon = <Loader2 className="h-4 w-4 animate-spin text-blue-400" />;
+    let colorClass = "text-blue-400";
+    let bgColorClass = "bg-blue-900/30 border-blue-700";
+    let progressColorVar = "hsl(221.2 83.2% 53.3%)";
+
+    if (appState.status === "error") {
+      icon = <AlertCircle className="h-4 w-4 text-red-400" />;
+      colorClass = "text-red-400";
+      bgColorClass = "bg-red-900/30 border-red-700";
+      progressColorVar = "hsl(0 84.2% 60.2%)";
+    } else if (isResumeReady && appState.status === "idle") {
+      icon = <CheckCircle2 className="h-4 w-4 text-green-400" />;
+      colorClass = "text-green-400";
+      bgColorClass = "bg-green-900/30 border-green-700";
+      progressColorVar = "hsl(142.1 76.2% 36.3%)";
     }
+    // Keep loading icon for parsing/generating
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        className={`w-full p-3 px-4 mt-6 mb-2 rounded-lg border ${bgColorClass}`}
+        style={{ "--primary": progressColorVar } as React.CSSProperties}
+      >
+        <div className="flex justify-between items-center mb-1">
+          <span
+            className={`text-sm font-medium flex items-center gap-2 ${colorClass}`}
+          >
+            {icon}
+            {appState.stage ||
+              (isResumeReady ? "Resume ready" : "Awaiting input")}
+          </span>
+          {(appState.status === "parsing" ||
+            appState.status === "generating" ||
+            (isResumeReady && appState.status === "idle")) && (
+            <span className={`text-sm font-medium ${colorClass}`}>
+              {appState.progress}%
+            </span>
+          )}
+        </div>
+        {(appState.status === "parsing" ||
+          appState.status === "generating" ||
+          (isResumeReady && appState.status === "idle")) && (
+          <Progress value={appState.progress} className="h-1.5" />
+        )}
+        {appState.status === "error" && appState.error && (
+          <p className="text-xs text-red-300/80 mt-1.5 pl-6">
+            {appState.error}
+          </p>
+        )}
+      </motion.div>
+    );
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-neutral-950 to-neutral-900 text-white">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-12">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950 text-slate-200">
+      {/* Subtle background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[150px]"></div>
+        <div className="absolute top-1/3 -left-60 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[120px]"></div>
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-10 z-10">
+        {/* Header */}
+        <motion.div
+          className="flex flex-col sm:flex-row items-center justify-between mb-10"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-500">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 pb-1">
               AI Application Assistant
             </h1>
-            <p className="text-neutral-400 mt-2 text-lg">
-              Craft perfect job application responses with AI
+            <p className="text-slate-400 mt-1 text-base font-light">
+              Generate tailored responses based on your resume and job details.
             </p>
           </div>
-          <Link href="/history">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 bg-neutral-800 border-neutral-700 hover:bg-neutral-700 text-white"
-            >
-              <History className="h-4 w-4" />
-              Application History
-            </Button>
+          <Link href="/history" className="mt-4 sm:mt-0">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 text-slate-300 hover:text-white"
+              >
+                <History className="h-4 w-4" />
+                View History
+              </Button>
+            </motion.div>
           </Link>
-        </div>
+        </motion.div>
 
-        <div className="bg-neutral-800 rounded-xl shadow-xl border border-neutral-700 overflow-hidden">
-          <div className="p-6 border-b border-neutral-700 bg-neutral-800/50">
-            <h2 className="text-xl font-semibold">Application Details</h2>
-            <p className="text-neutral-400 text-sm">
-              Fill in the job details and upload your resume
-            </p>
-          </div>
-
+        {/* Form Card */}
+        <motion.div
+          className="bg-slate-900/70 border border-slate-700/80 rounded-xl shadow-2xl shadow-indigo-950/30 backdrop-blur-lg overflow-hidden"
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+        >
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
-              className="p-6 space-y-6"
+              className="divide-y divide-slate-700/80"
             >
-              <div className="grid md:grid-cols-2 gap-6">
+              {/* Section 1: Job Information */}
+              <div className="p-6 space-y-5">
+                <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-purple-400" />
+                  Job Information
+                </h3>
+                <div className="grid md:grid-cols-2 gap-5">
+                  <FormField
+                    control={form.control}
+                    name="jobTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-400">
+                          Job Title
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Software Engineer"
+                            {...field}
+                            disabled={isProcessing}
+                            className="bg-slate-800 border-slate-600 focus:border-purple-500"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-400 text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="company"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-slate-400">
+                          Company
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Acme Corp"
+                            {...field}
+                            disabled={isProcessing}
+                            className="bg-slate-800 border-slate-600 focus:border-purple-500"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-400 text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
-                  name="jobTitle"
+                  name="techStack"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-medium text-sm text-neutral-300 flex items-center gap-2">
-                        <Briefcase className="w-4 h-4 text-purple-400" />
-                        Job Title
+                      <FormLabel className="text-sm text-slate-400 flex items-center gap-1.5">
+                        <Code className="w-4 h-4" /> Tech Stack / Keywords
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="e.g., Frontend Developer"
-                          type="text"
+                          placeholder="e.g., React, Node.js, AWS, Python"
                           {...field}
-                          disabled={isFormDisabled}
-                          className="bg-neutral-900 border-neutral-700 focus:border-purple-500 text-white"
+                          disabled={isProcessing}
+                          className="bg-slate-800 border-slate-600 focus:border-purple-500"
                         />
                       </FormControl>
-                      <FormMessage className="text-red-400" />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="company"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-medium text-sm text-neutral-300 flex items-center gap-2">
-                        <Building className="w-4 h-4 text-purple-400" />
-                        Company
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., Google"
-                          type="text"
-                          {...field}
-                          disabled={isFormDisabled}
-                          className="bg-neutral-900 border-neutral-700 focus:border-purple-500 text-white"
-                        />
-                      </FormControl>
-                      <FormMessage className="text-red-400" />
+                      <FormDescription className="text-xs text-slate-500">
+                        Comma-separated list of key technologies or skills.
+                      </FormDescription>
+                      <FormMessage className="text-red-400 text-xs" />
                     </FormItem>
                   )}
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="techStack"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-medium text-sm text-neutral-300 flex items-center gap-2">
-                      <Code className="w-4 h-4 text-purple-400" />
-                      Tech Stack
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., React, TailwindCSS, Next.js"
-                        type="text"
-                        {...field}
-                        disabled={isFormDisabled}
-                        className="bg-neutral-900 border-neutral-700 focus:border-purple-500 text-white"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-400" />
-                  </FormItem>
+              {/* Section 2: Resume Upload */}
+              <div className="p-6 space-y-4">
+                <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-purple-400" />
+                  Your Resume
+                </h3>
+                <div
+                  {...getRootProps()}
+                  className={`relative w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer
+                      ${isProcessing ? "opacity-60 pointer-events-none" : ""}
+                      ${isDragActive ? "border-purple-400 bg-purple-900/20" : "border-slate-600 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/60"}
+                      ${isResumeReady ? "border-green-500/50 bg-green-900/10 hover:border-green-500/70" : ""}
+                      ${!parsedResume && !isProcessing ? "cursor-pointer" : "cursor-default"}
+                    `}
+                >
+                  <input
+                    {...getInputProps()}
+                    disabled={isProcessing || !!parsedResume}
+                  />
+                  {isResumeReady ? (
+                    <div className="text-center">
+                      <CheckCircle2 className="h-10 w-10 text-green-400 mx-auto mb-3" />
+                      <p className="font-medium text-slate-100">
+                        {resume?.name || "Resume Ready"}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        AI processing complete. Resume is ready.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-3 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-900/30 h-auto px-2 py-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearResume();
+                        }} // Prevent dropzone activation
+                        disabled={isProcessing}
+                      >
+                        <RefreshCw className="w-3 h-3 mr-1" /> Change Resume
+                      </Button>
+                    </div>
+                  ) : isProcessing && appState.status === "parsing" ? (
+                    <div className="text-center">
+                      <Loader2 className="h-10 w-10 text-blue-400 mx-auto mb-3 animate-spin" />
+                      <p className="font-medium text-slate-200">
+                        Parsing Resume...
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {resume?.name}
+                      </p>
+                    </div>
+                  ) : isDragActive ? (
+                    <div className="text-center pointer-events-none">
+                      <UploadCloud className="h-10 w-10 text-purple-400 mx-auto mb-3" />
+                      <p className="font-medium text-purple-300">
+                        Drop the PDF file here
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <UploadCloud className="h-10 w-10 text-slate-500 mx-auto mb-3" />
+                      <p className="font-medium text-slate-300">
+                        Drag & drop resume here
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1 mb-3">or</p>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={open}
+                        disabled={isProcessing}
+                      >
+                        Click to Upload PDF
+                      </Button>
+                      <p className="text-xs text-slate-600 mt-3">Max 10MB</p>
+                    </div>
+                  )}
+                </div>
+                {!isResumeReady && !isProcessing && (
+                  <FormDescription className="text-xs text-center text-slate-500 pt-1">
+                    Your resume is parsed locally by AI and is required to
+                    generate tailored responses.
+                  </FormDescription>
                 )}
-              />
+              </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
+              {/* Section 3: Additional Details */}
+              <div className="p-6 space-y-5">
+                <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                  <Info className="w-5 h-5 text-purple-400" />
+                  Additional Context
+                </h3>
                 <FormField
                   control={form.control}
                   name="description"
                   render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel className="font-medium text-sm text-neutral-300 flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-purple-400" />
+                    <FormItem>
+                      <FormLabel className="text-sm text-slate-400">
                         Job Description
                       </FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Paste the job description here..."
-                          className="resize-none min-h-32 bg-neutral-900 border-neutral-700 focus:border-purple-500 text-white"
+                          placeholder="Paste the full job description here..."
+                          className="resize-none min-h-[150px] bg-slate-800 border-slate-600 focus:border-purple-500 text-sm"
                           {...field}
-                          disabled={isFormDisabled}
+                          disabled={isProcessing}
                         />
                       </FormControl>
-                      <FormMessage className="text-red-400" />
+                      <FormMessage className="text-red-400 text-xs" />
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="companyDetails"
                   render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel className="font-medium text-sm text-neutral-300 flex items-center gap-2">
-                        <Info className="w-4 h-4 text-purple-400" />
-                        Company Details
+                    <FormItem>
+                      <FormLabel className="text-sm text-slate-400">
+                        Company Details (Optional)
                       </FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Write or paste what you know about the company..."
-                          className="resize-none min-h-24 bg-neutral-900 border-neutral-700 focus:border-purple-500 text-white"
+                          placeholder="Any specific details about the company, its values, recent news, or the team?"
+                          className="resize-none min-h-[150px] bg-slate-800 border-slate-600 focus:border-purple-500 text-sm"
                           {...field}
-                          disabled={isFormDisabled}
+                          disabled={isProcessing}
                         />
                       </FormControl>
-                      <FormMessage className="text-red-400" />
+                      <FormDescription className="text-xs text-slate-500">
+                        Helps tailor the "Why this company?" answers.
+                      </FormDescription>
+                      <FormMessage className="text-red-400 text-xs" />
                     </FormItem>
                   )}
                 />
               </div>
 
-              <div className="md:col-span-2 space-y-4">
-                <h3 className="font-medium text-sm text-neutral-300 flex items-center gap-2">
-                  <CloudUpload className="w-4 h-4 text-purple-400" />
-                  Resume Upload
-                </h3>
+              {/* Section 4: Actions & Status */}
+              <div className="p-6">
+                <StatusIndicator />
 
-                <div
-                  {...getRootProps()}
-                  className={`w-full h-36 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all ${
-                    isDragActive
-                      ? "bg-purple-500/10 border-purple-400"
-                      : "bg-neutral-900/50 hover:bg-neutral-800/50"
-                  } ${
-                    isFormDisabled
-                      ? "opacity-50 pointer-events-none"
-                      : "border-neutral-700"
-                  } ${resume ? "border-purple-500/30 bg-purple-500/5" : ""}`}
+                <Button
+                  type="submit"
+                  className={`w-full py-3 text-base font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2
+                    ${!canSubmit ? "bg-slate-700 text-slate-500 cursor-not-allowed" : "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-purple-500"}
+                  `}
+                  disabled={!canSubmit}
                 >
-                  <input {...getInputProps()} disabled={isFormDisabled} />
-                  {resume ? (
-                    <div className="text-neutral-300 font-medium flex flex-col justify-center items-center gap-2">
-                      <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                        <FileText className="text-purple-400 h-6 w-6" />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-white font-medium">{resume.name}</p>
-                        <p className="text-neutral-400 text-sm">
-                          {(resume.size / 1024 / 1024).toFixed(2)} MB • PDF
-                        </p>
-                      </div>
-                      {appState.status === "parsing" && (
-                        <p className="text-sm text-blue-400 flex items-center gap-1">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          Parsing...
-                        </p>
-                      )}
-                      {parsedResume && appState.status !== "parsing" && (
-                        <p className="text-sm text-green-400 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Ready
-                        </p>
-                      )}
-                    </div>
-                  ) : isDragActive ? (
-                    <div className="text-purple-400 flex flex-col items-center">
-                      <CloudUpload className="h-8 w-8 mb-2" />
-                      <p>Drop your resume here...</p>
-                    </div>
+                  {appState.status === "generating" ? (
+                    <>
+                      {" "}
+                      <Loader2 className="h-5 w-5 animate-spin" />{" "}
+                      Generating...{" "}
+                    </>
                   ) : (
-                    <div className="flex flex-col items-center text-neutral-400">
-                      <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center mb-2">
-                        <CloudUpload className="h-5 w-5 text-neutral-300" />
-                      </div>
-                      <p className="text-sm font-medium text-neutral-300">
-                        Drag & drop or click to upload
-                      </p>
-                      <p className="text-xs text-neutral-500 mt-1">
-                        PDF resume only • Max 10MB
-                      </p>
-                    </div>
+                    <>
+                      {" "}
+                      Generate AI Responses{" "}
+                      <Sparkles className="h-5 w-5 ml-1 opacity-80" />{" "}
+                    </>
                   )}
-                </div>
-              </div>
+                </Button>
 
-              {appState.progress > 0 && (
-                <div className="w-full p-4 bg-neutral-900 rounded-lg border border-neutral-800">
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm flex items-center gap-2">
-                      {appState.status === "error" ? (
-                        <AlertCircle className="h-4 w-4 text-red-400" />
-                      ) : appState.status === "complete" ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-400" />
-                      ) : (
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
-                      )}
-                      <span
-                        className={`
-                        ${
-                          appState.status === "error"
-                            ? "text-red-400"
-                            : appState.status === "complete"
-                              ? "text-green-400"
-                              : "text-blue-400"
-                        }
-                      `}
-                      >
-                        {appState.stage}
-                      </span>
-                    </span>
-                    <span className="text-sm text-neutral-400">
-                      {appState.progress}%
-                    </span>
-                  </div>
-                  <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${getStatusColor()} transition-all duration-500`}
-                      style={{ width: `${appState.progress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                className={`w-full py-6 text-lg font-medium rounded-lg transition-all ${
-                  isSubmitDisabled
-                    ? "bg-neutral-800 text-neutral-400"
-                    : "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg"
-                }`}
-                disabled={isSubmitDisabled}
-              >
-                {appState.status === "generating" ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Generating AI Responses...
-                  </span>
-                ) : appState.status === "parsing" ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Parsing Resume...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2 justify-center">
-                    {parsedResume
-                      ? "Generate AI Responses"
-                      : "Upload Resume to Continue"}
-                    {parsedResume && <span className="ml-1">✨</span>}
-                  </span>
-                )}
-              </Button>
-
-              {appState.status === "error" && (
-                <div className="p-4 bg-red-900/20 border border-red-800 rounded-lg">
-                  <p className="text-red-400 text-sm flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                    <span>
-                      {appState.error ||
-                        "An error occurred. Please try again or contact support if the problem persists."}
-                    </span>
+                {!isResumeReady && appState.status !== "parsing" && (
+                  <p className="text-xs text-center text-amber-400/80 mt-3">
+                    Please upload your resume before generating responses.
                   </p>
-                </div>
-              )}
+                )}
+              </div>
             </form>
           </Form>
-        </div>
+        </motion.div>
 
-        {generatedAnswers && (
-          <div className="mt-10 w-full">
-            <ApplicationAnswers data={generatedAnswers} />
-          </div>
-        )}
+        {/* Footer/Note */}
+        <p className="text-center text-xs text-slate-600 mt-8">
+          Powered by AI ✨ Ensure generated content is accurate and reflects
+          your voice.
+        </p>
       </div>
     </main>
   );

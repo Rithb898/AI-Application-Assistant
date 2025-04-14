@@ -1,41 +1,32 @@
 // Local storage utility for response history
 
-type ResponseData = {
-  interestInCompany: string;
-  coverLetter: string;
-  whyFit: string;
-  valueAdd: string;
-  linkedinSummary: string;
-  shortAnswer: string;
-};
-
-type HistoryItem = {
-  id: string;
-  company: string;
-  jobTitle: string;
-  date: string;
-  data: ResponseData;
-};
+import {
+  GeneratedContentType,
+  HistoryItemType,
+  regenerateDataType,
+} from "./types";
 
 // Save a response to history
 export function saveResponseToHistory(
   company: string,
   jobTitle: string,
-  data: ResponseData,
+  data: GeneratedContentType,
   id: string,
+  resume: object,
 ): void {
   // Get existing history or initialize empty array
-  const history: HistoryItem[] = JSON.parse(
+  const history: HistoryItemType[] = JSON.parse(
     localStorage.getItem("responseHistory") || "[]",
   );
 
   // Create new history item
-  const newItem: HistoryItem = {
+  const newItem: HistoryItemType = {
     id,
     company,
     jobTitle,
     date: new Date().toISOString(),
     data,
+    resume,
   };
 
   // Add to history (most recent first)
@@ -49,12 +40,12 @@ export function saveResponseToHistory(
 }
 
 // Get all history items
-export function getResponseHistory(): HistoryItem[] {
+export function getResponseHistory(): HistoryItemType[] {
   return JSON.parse(localStorage.getItem("responseHistory") || "[]");
 }
 
 // Get a specific history item by ID
-export function getResponseById(id: string): HistoryItem | null {
+export function getResponseById(id: string): HistoryItemType | null {
   const history = getResponseHistory();
   return history.find((item) => item.id === id) || null;
 }
