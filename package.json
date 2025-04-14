@@ -30,6 +30,8 @@
     "next-themes": "^0.4.6",
     "pdf-parse": "^1.1.1",
     "pdf2json": "^3.1.5",
+    "posthog-js": "^1.236.0",
+    "posthog-node": "^4.11.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.8",

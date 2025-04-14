@@ -20,13 +20,14 @@ An intelligent tool that helps job seekers generate personalized application res
 ## Tech Stack
 
 - **Framework**: Next.js 15 with App Router and Turbopack
-- **UI**: Tailwind CSS 4 with DaisyUI and Shadcn UI components
+- **UI**: Tailwind CSS with Shadcn UI components
 - **AI**: AI SDK with Groq LLama 3.3 model for response generation
 - **PDF Processing**: pdf-parse for resume extraction
 - **Form Handling**: React Hook Form with Zod validation
-- **State Management**: Zustand for global state
+- **State Management**: Local storage for persistence
 - **File Upload**: React Dropzone
 - **Notifications**: React Hot Toast
+- **Animation**: Motion library for UI animations
 
 ## Getting Started
 
@@ -47,11 +48,11 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## How It Works
 
 1. Users upload their resume (PDF) and enter job details
-2. The `/api/parse-resume` endpoint extracts text from the resume PDF
-3. The extracted text is structured using AI
+2. The `/api/parse-resume` endpoint extracts text from the resume PDF using pdf-parse
+3. The extracted text is structured using Groq's LLama 3.1 model
 4. The `/api/generate` endpoint uses Groq's LLama 3.3 model to create personalized application responses
 5. Users can copy, regenerate, and save these responses
-6. All responses are saved to history for future reference
+6. All responses are saved to local storage for future reference
 
 ## Project Structure
 
@@ -77,3 +78,4 @@ This project uses:
 Deploy on Vercel for the best experience:
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FRithb898%2Fai-application-assistant)
+

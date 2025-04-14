@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import Navbar from "@/components/Navbar";
+import { PostHogProvider } from "@/components/PostHogProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,9 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -37,9 +36,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Toaster position="top-right" reverseOrder={false} />
-          <Navbar />
-          {children}
+          <PostHogProvider>
+            <Toaster position="top-right" reverseOrder={false} />
+            <Navbar />
+            {children}
+          </PostHogProvider>
         </ThemeProvider>
       </body>
     </html>

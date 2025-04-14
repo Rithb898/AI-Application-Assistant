@@ -143,7 +143,7 @@ export default function HistoryPage() {
           className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-6"
         >
           <motion.div variants={fadeInUp} className="flex items-center gap-4">
-            {/* Ensure your app path is correct, assuming /app */}
+            {/* Ensure your app path is correct, assuming /create */}
             <Link href="/create">
               <Button
                 variant="outline"
@@ -165,7 +165,7 @@ export default function HistoryPage() {
             </div>
           </motion.div>
           <motion.div variants={fadeInUp}>
-            <Link href="/app" className="w-full sm:w-auto">
+            <Link href="/create" className="w-full sm:w-auto">
               <Button
                 size="sm"
                 className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white w-full h-9 px-4"
@@ -225,7 +225,7 @@ export default function HistoryPage() {
                     transition={{ delay: 0.4, duration: 0.4 }}
                     className="mt-4" // Adjusted margin
                   >
-                    <Link href="/app">
+                    <Link href="/create">
                       <Button
                         size="lg"
                         className="px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-shadow"
