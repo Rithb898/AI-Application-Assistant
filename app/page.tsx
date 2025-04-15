@@ -91,7 +91,7 @@ export default function LandingPage() {
       <motion.section // Animate section as it comes into view
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        viewport={{ once: true, amount: 0.5 }} // Trigger when 10% is visible
+        viewport={{ once: true, amount: 0.1 }} // Trigger when 10% is visible
         transition={{ duration: 0.7 }}
         className="relative z-10 py-16 md:py-24 bg-slate-900/40 backdrop-blur-sm px-4"
       >
