@@ -5,6 +5,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from "@clerk/nextjs";
 
 function Navbar() {
   return (
@@ -36,6 +43,10 @@ function Navbar() {
               Launch App <ArrowRight className='w-4 h-4 ml-1.5' />
             </Button>
           </Link>
+
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
         </div>
       </div>
     </nav>
