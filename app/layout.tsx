@@ -81,13 +81,11 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {/* <AuthProvider> */}
             <PostHogProvider>
               <Toaster position='top-right' reverseOrder={false} />
               <Navbar />
               {children}
             </PostHogProvider>
-            {/* </AuthProvider> */}
           </ThemeProvider>
         </body>
       </html>
