@@ -5,7 +5,6 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import Navbar from "@/components/Navbar";
 import { PostHogProvider } from "@/components/PostHogProvider";
-import { AuthProvider } from "@/context/AuthContext";
 import { ClerkProvider } from "@clerk/nextjs";
 
 const inter = Inter({
