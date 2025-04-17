@@ -36,7 +36,7 @@ import toast from "react-hot-toast";
 import { Progress } from "./ui/progress";
 // Removed ApplicationAnswers import as it's not used directly in this component anymore
 // import ApplicationAnswers from "./ApplicationAnswers";
-import { saveResponseToHistory } from "@/lib/storage";
+import { saveResponseToHistory, saveResumeToDB, getResumeFromDB } from "@/lib/storage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator"; // Added for visual separation
@@ -68,32 +68,37 @@ export default function JobForm() {
 
   // --- Resume Loading Effect ---
   useEffect(() => {
-    const storedResume = localStorage.getItem("parsedResume");
-    const storedDate = localStorage.getItem("resumeDate");
-    const RESUME_EXPIRY_DAYS = 7; // Let's expire the resume after 7 days
-
-    if (storedResume && storedDate) {
-      const resumeDate = new Date(storedDate);
-      const expiryDate = new Date(resumeDate);
-      expiryDate.setDate(resumeDate.getDate() + RESUME_EXPIRY_DAYS);
-
-      if (new Date() < expiryDate) {
-        setParsedResume(storedResume);
-        setResume({
-          name: "Cached Resume",
-          size: 0,
-          type: "application/pdf",
-          lastModified: resumeDate.getTime(),
-        } as File);
-        // Don't toast here, let the UI reflect it
-        console.log("Cached resume loaded.");
-      } else {
-        // Clear expired resume
-        localStorage.removeItem("parsedResume");
-        localStorage.removeItem("resumeDate");
-        console.log("Cached resume expired and removed.");
+    const loadResume = async () => {
+      try {
+        updateState({
+          status: "parsing",
+          progress: 10,
+          stage: "Checking for saved resume...",
+        });
+        
+        const storedResume = await getResumeFromDB();
+        
+        if (storedResume) {
+          setParsedResume(JSON.stringify(storedResume));
+          setResume({
+            name: "Saved Resume",
+            size: 0,
+            type: "application/pdf",
+            lastModified: Date.now(),
+          } as File);
+          
+          updateState({ status: "idle", progress: 50, stage: "Resume ready!" });
+          console.log("Saved resume loaded from MongoDB.");
+        } else {
+          updateState({ status: "idle", progress: 0, stage: "" });
+        }
+      } catch (error) {
+        console.error("Error loading resume:", error);
+        updateState({ status: "idle", progress: 0, stage: "" });
       }
-    }
+    };
+
+    loadResume();
   }, []);
 
   // --- Unique ID Generation ---
@@ -152,11 +157,12 @@ export default function JobForm() {
       const stringified = JSON.stringify(parsedData);
       setParsedResume(stringified);
 
-      localStorage.setItem("parsedResume", stringified);
-      localStorage.setItem("resumeDate", new Date().toISOString());
+      // Save to MongoDB instead of localStorage
+      updateState({ progress: 40, stage: "Saving resume to database..." });
+      await saveResumeToDB(parsedData);
 
       updateState({ status: "idle", progress: 50, stage: "Resume ready!" });
-      toast.success("Resume parsed successfully!");
+      toast.success("Resume parsed and saved successfully!");
     } catch (error) {
       console.error("Error parsing resume:", error);
       const errorMessage =
@@ -171,8 +177,6 @@ export default function JobForm() {
       // Clear potentially corrupted state
       setResume(null);
       setParsedResume("");
-      localStorage.removeItem("parsedResume");
-      localStorage.removeItem("resumeDate");
     }
   };
 
@@ -285,13 +289,18 @@ export default function JobForm() {
   const canSubmit = isResumeReady && !isProcessing;
 
   // --- Helper Functions ---
-  const clearResume = () => {
-    localStorage.removeItem("parsedResume");
-    localStorage.removeItem("resumeDate");
-    setParsedResume("");
-    setResume(null);
-    updateState({ progress: 0, stage: "" }); // Reset progress related to resume
-    toast("Resume cache cleared. You can upload a new one.");
+  const clearResume = async () => {
+    try {
+      // Save an empty object to effectively clear the resume
+      await saveResumeToDB({});
+      setParsedResume("");
+      setResume(null);
+      updateState({ progress: 0, stage: "" });
+      toast("Resume cleared. You can upload a new one.");
+    } catch (error) {
+      console.error("Error clearing resume:", error);
+      toast.error("Failed to clear resume.");
+    }
   };
 
   // --- Status Indicator Component ---
@@ -663,3 +672,4 @@ export default function JobForm() {
     </main>
   );
 }
+

@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 export interface ResumeData {
   name: string;
@@ -35,15 +34,9 @@ interface ResumeStore {
   clearResumeData: () => void;
 }
 
-export const useResumeStore = create<ResumeStore>()(
-  persist(
-    (set) => ({
-      resumeData: null,
-      setResumeData: (data) => set({ resumeData: data }),
-      clearResumeData: () => set({ resumeData: null }),
-    }),
-    {
-      name: "resume-storage",
-    },
-  ),
-);
+export const useResumeStore = create<ResumeStore>((set) => ({
+  resumeData: null,
+  setResumeData: (data) => set({ resumeData: data }),
+  clearResumeData: () => set({ resumeData: null }),
+}));
+

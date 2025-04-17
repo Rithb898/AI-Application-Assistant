@@ -1,4 +1,4 @@
-# AI Application Assistant
+# FitForJob - AI Application Assistant
 
 An intelligent tool that helps job seekers generate personalized application responses using AI.
 
@@ -16,18 +16,21 @@ An intelligent tool that helps job seekers generate personalized application res
   - Interview preparation questions
 - View, copy, and regenerate responses
 - Save and manage response history
+- User authentication with Clerk
 
 ## Tech Stack
 
 - **Framework**: Next.js 15 with App Router and Turbopack
-- **UI**: Tailwind CSS with Shadcn UI components
+- **UI**: Tailwind CSS 4 with Shadcn UI components
 - **AI**: AI SDK with Groq LLama 3.3 model for response generation
 - **PDF Processing**: pdf-parse for resume extraction
 - **Form Handling**: React Hook Form with Zod validation
-- **State Management**: Local storage for persistence
+- **State Management**: Local storage and MongoDB for persistence
+- **Authentication**: Clerk for user management
 - **File Upload**: React Dropzone
-- **Notifications**: React Hot Toast
+- **Notifications**: React Hot Toast and Sonner
 - **Animation**: Motion library for UI animations
+- **Analytics**: PostHog for usage tracking
 
 ## Getting Started
 
@@ -52,12 +55,13 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 3. The extracted text is structured using Groq's LLama 3.1 model
 4. The `/api/generate` endpoint uses Groq's LLama 3.3 model to create personalized application responses
 5. Users can copy, regenerate, and save these responses
-6. All responses are saved to local storage for future reference
+6. All responses are saved to local storage and MongoDB for authenticated users
 
 ## Project Structure
 
 - `/app`: Next.js App Router pages and API routes
   - `/api`: Backend API endpoints for resume parsing, response generation, and regeneration
+  - `/api/webhooks`: Webhook handlers for Clerk authentication
   - `/history`: View saved application responses
   - `/response/[id]`: View individual response details with regeneration capability
 - `/components`: UI components including forms, response sections, and layout elements
@@ -72,10 +76,13 @@ This project uses:
 - ESLint for code quality
 - Turbopack for fast development builds
 - Tailwind CSS for styling with custom theme configuration
+- MongoDB for database storage
+- Firebase for additional storage options
 
 ## Deployment
 
 Deploy on Vercel for the best experience:
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FRithb898%2Fai-application-assistant)
+
 

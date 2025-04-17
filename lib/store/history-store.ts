@@ -1,40 +1,22 @@
+// This file can be removed as we're now using MongoDB exclusively
+// If you need to keep it for other reasons, you can leave it empty or with minimal functionality
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import type { GeneratedContent } from "./content-store";
-
-export interface HistoryItem {
-  id: string;
-  timestamp: string;
-  jobTitle: string;
-  company: string;
-  content: GeneratedContent;
-}
+import { HistoryItemType } from "@/lib/types";
 
 interface HistoryStore {
-  history: HistoryItem[];
-  addToHistory: (item: HistoryItem) => void;
+  // Keep the interface but we won't use local storage anymore
+  history: HistoryItemType[];
+  addToHistory: (item: HistoryItemType) => void;
   removeFromHistory: (id: string) => void;
   clearHistory: () => void;
 }
 
-export const useHistoryStore = create<HistoryStore>()(
-  persist(
-    (set) => ({
-      history: [],
-      addToHistory: (item) =>
-        set((state) => ({
-          history: [item, ...state.history].slice(0, 20), // Keep only the 20 most recent items
-        })),
-      removeFromHistory: (id) =>
-        set((state) => ({
-          history: state.history.filter((item) => item.id !== id),
-        })),
-      clearHistory: () => set({ history: [] }),
-    }),
-    {
-      name: "history-storage",
-    },
-  ),
-);
+export const useHistoryStore = create<HistoryStore>((set) => ({
+  history: [],
+  addToHistory: () => {}, // No-op as we use MongoDB
+  removeFromHistory: () => {}, // No-op as we use MongoDB
+  clearHistory: () => {}, // No-op as we use MongoDB
+}));
+

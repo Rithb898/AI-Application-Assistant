@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     // `;
 
     const { object, usage } = await generateObject({
-      model: groq("llama-3.3-70b-versatile"),
+      model: groq("deepseek-r1-distill-llama-70b"),
       schema: jobApplicationSchema,
       system: generateSystemPrompt,
       prompt: generatePrompt(
