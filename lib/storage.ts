@@ -65,10 +65,8 @@ export async function saveResponseToHistory(
   try {
     const { userId } = await auth();
     if (userId) {
-      // Prepare data for the action
-      const { userId: _, ...dataToSave } = newItem;
       // Call the server action with the complete data
-      await saveResponseAction(dataToSave);
+      await saveResponseAction(newItem);
       console.log(`Response ${id} saved to MongoDB for user ${userId}`);
     } else {
       console.log("User not authenticated. Response not saved to history.");
