@@ -22,7 +22,12 @@ import {
 } from "lucide-react";
 import { GeneratedContentType, HistoryItemType } from "@/lib/types";
 import ResponseSection from "@/components/ResponseSection";
-// Removed Tabs imports
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -499,115 +504,124 @@ export default function ResponsePage() {
           </Card>
         </motion.div>
 
-        {/* --- Content Area (No Tabs) --- */}
+        {/* --- Content Area (Tabs) --- */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
           className='space-y-8' // Add space between the two main sections
         >
-          {/* Section 1: Application Materials */}
-          {hasApplicationMaterials && (
-            <section aria-labelledby='application-materials-heading'>
-              <h2
-                id='application-materials-heading'
-                className='text-xl font-semibold text-slate-200 mb-4 flex items-center gap-2'
+          <Tabs defaultValue='applicationMaterials' className='w-full'>
+            <TabsList className='w-full flex justify-center bg-slate-800/50 rounded-md p-1 mb-5'>
+              <TabsTrigger
+                value='applicationMaterials'
+                className='data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white h-10'
               >
-                <Newspaper className='w-5 h-5 text-purple-400' />
                 Application Materials
-              </h2>
-              <motion.div
-                variants={staggerContainer}
-                initial='hidden'
-                animate='visible'
-                className='space-y-5'
+              </TabsTrigger>
+              <TabsTrigger
+                value='interviewPrep'
+                className='data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white h-10'
               >
-                {applicationMaterials &&
-                  applicationSections.map((section) => (
-                    <motion.div key={section.key} variants={itemFadeIn}>
-                      <ResponseSection
-                        icon={section.icon}
-                        title={section.title}
-                        content={
-                          applicationMaterials[section.key] || "Not generated."
-                        }
-                        gradientFrom={section.gradient[0]}
-                        gradientTo={section.gradient[1]}
-                        onRegenerate={
-                          parsedResume
-                            ? () => handleRegenerate(section.key)
-                            : undefined
-                        }
-                        isRegenerating={isRegenerating === section.key}
-                        regenerationDisabled={!parsedResume}
-                        regenerationTooltip={
-                          !parsedResume
-                            ? "Resume data needed for regeneration"
-                            : undefined
-                        }
-                      />
-                    </motion.div>
-                  ))}
-              </motion.div>
-            </section>
-          )}
-
-          {/* Separator if both sections exist */}
-          {hasApplicationMaterials && hasInterviewQuestions && (
-            <Separator className='bg-slate-700 my-8' />
-          )}
-
-          {/* Section 2: Interview Prep */}
-          {hasInterviewQuestions && (
-            <section aria-labelledby='interview-prep-heading'>
-              <h2
-                id='interview-prep-heading'
-                className='text-xl font-semibold text-slate-200 mb-4 flex items-center gap-2'
-              >
-                Interview Preparation
-              </h2>
-              <motion.div
-                variants={staggerContainer}
-                initial='hidden'
-                animate='visible'
-                className='space-y-5'
-              >
-                {interviewQuestions.map((question, index) => (
-                  <motion.div key={`interview-${index}`} variants={itemFadeIn}>
-                    <ResponseSection
-                      icon={<Brain className='w-4 h-4' />}
-                      title={`Potential Question ${index + 1}`}
-                      content={question}
-                      gradientFrom='from-teal-500'
-                      gradientTo='to-cyan-600'
-                    />
+                Interview Prep
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value='applicationMaterials' className='space-y-8'>
+              {/* Section 1: Application Materials */}
+              {hasApplicationMaterials && (
+                <section aria-labelledby='application-materials-heading'>
+                  <h2
+                    id='application-materials-heading'
+                    className='text-xl font-semibold text-slate-200 mb-4 flex items-center gap-2'
+                  >
+                    <Newspaper className='w-5 h-5 text-purple-400' />
+                    Application Materials
+                  </h2>
+                  <motion.div
+                    variants={staggerContainer}
+                    initial='hidden'
+                    animate='visible'
+                    className='space-y-5'
+                  >
+                    {applicationMaterials &&
+                      applicationSections.map((section) => (
+                        <motion.div key={section.key} variants={itemFadeIn}>
+                          <ResponseSection
+                            icon={section.icon}
+                            title={section.title}
+                            content={
+                              applicationMaterials[section.key] ||
+                              "Not generated."
+                            }
+                            gradientFrom={section.gradient[0]}
+                            gradientTo={section.gradient[1]}
+                            onRegenerate={
+                              parsedResume
+                                ? () => handleRegenerate(section.key)
+                                : undefined
+                            }
+                            isRegenerating={isRegenerating === section.key}
+                            regenerationDisabled={!parsedResume}
+                            regenerationTooltip={
+                              !parsedResume
+                                ? "Resume data needed for regeneration"
+                                : undefined
+                            }
+                          />
+                        </motion.div>
+                      ))}
                   </motion.div>
-                ))}
+                </section>
+              )}
+            </TabsContent>
+
+            <TabsContent value='interviewPrep' className='space-y-8'>
+              {/* Section 2: Interview Prep */}
+              {hasInterviewQuestions && (
+                <section aria-labelledby='interview-prep-heading'>
+                  <h2
+                    id='interview-prep-heading'
+                    className='text-xl font-semibold text-slate-200 mb-4 flex items-center gap-2'
+                  >
+                    Interview Preparation
+                  </h2>
+                  <motion.div
+                    variants={staggerContainer}
+                    initial='hidden'
+                    animate='visible'
+                    className='space-y-5'
+                  >
+                    {interviewQuestions.map((question, index) => (
+                      <motion.div
+                        key={`interview-${index}`}
+                        variants={itemFadeIn}
+                      >
+                        <ResponseSection
+                          icon={<Brain className='w-4 h-4' />}
+                          title={`Potential Question ${index + 1}`}
+                          content={question}
+                          gradientFrom='from-teal-500'
+                          gradientTo='to-cyan-600'
+                        />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                </section>
+              )}
+            </TabsContent>
+
+            {/* Fallback if NO content exists at all */}
+            {!hasAnyContent && (
+              <motion.div variants={itemFadeIn}>
+                <Card className='bg-slate-800/50 border-slate-700'>
+                  <CardContent className='pt-6 text-center text-slate-400'>
+                    No generated content (application materials or interview
+                    questions) found for this response.
+                  </CardContent>
+                </Card>
               </motion.div>
-            </section>
-          )}
-
-          {/* Fallback if NO content exists at all */}
-          {!hasAnyContent && (
-            <motion.div variants={itemFadeIn}>
-              <Card className='bg-slate-800/50 border-slate-700'>
-                <CardContent className='pt-6 text-center text-slate-400'>
-                  No generated content (application materials or interview
-                  questions) found for this response.
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </motion.div>
-
-        {/* Footer (unchanged) */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className='text-center text-slate-600 text-xs mt-12 mb-4'
-        >
-          <p>AI Application Assistant | Review generated content carefully.</p>
+            )}
+          </Tabs>
         </motion.div>
       </div>
     </motion.main>

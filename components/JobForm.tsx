@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react"; // Keep useState for now, might be needed elsewhere or remove later if not
+import { useEffect, useState, useCallback } from "react"; // Keep useState for now, might be needed elsewhere or remove later if not
 import { useAppState, AppState as AppStateType } from "@/hooks/useAppState";
 import { useResumeManager } from "@/hooks/useResumeManager";
 import { useJobFormSubmit } from "@/hooks/useJobFormSubmit"; // Import the form submit hook
@@ -68,7 +68,9 @@ export default function JobForm() {
     parseResume,
     clearResume,
   } = useResumeManager({ updateState });
-  const { handleSubmit: handleFormSubmit } = useJobFormSubmit({ updateState, parsedResume }); // Use the form submit hook
+  const handleParseResume = useCallback(parseResume, [parseResume]);
+  const handleClearResume = useCallback(clearResume, [clearResume]);
+  const { handleSubmit: handleFormSubmit } = useJobFormSubmit({ updateState, parsedResume });
 
   // Resume Loading Effect is now inside useResumeManager
 
@@ -303,8 +305,8 @@ export default function JobForm() {
                   setParsedResume={setParsedResume} // From useResumeManager
                   appState={appState} // Pass state from useAppState
                   updateState={updateState} // Pass update function from useAppState
-                  clearResume={clearResume} // From useResumeManager
-                  parseResume={parseResume} // From useResumeManager
+                  clearResume={handleClearResume} // From useResumeManager
+                  parseResume={handleParseResume} // From useResumeManager
                 />
                 {!isResumeReady && !isProcessing && (
                   <FormDescription className="text-xs text-center text-slate-500 pt-1">

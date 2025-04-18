@@ -85,6 +85,9 @@ export default function RootLayout({
               <Toaster position='top-right' reverseOrder={false} />
               <Navbar />
               {children}
+              <footer className="bg-slate-900 text-center text-xs text-slate-600 mt-8 py-4">
+                Powered by AI ✨ © 2025 Fit For Job
+              </footer>
             </PostHogProvider>
           </ThemeProvider>
         </body>

@@ -38,7 +38,7 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
     appState.status === "parsing" || appState.status === "generating";
   const isResumeReady = !!parsedResume && appState.status !== "parsing";
 
-  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+  const {getRootProps, getInputProps, isDragActive, open } = useDropzone({
     accept: { "application/pdf": [".pdf"] } as Accept, // Ensure correct type for accept
     maxFiles: 1,
     noClick: !!parsedResume, // Don't open file dialog if parsed
