@@ -15,6 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://fitforjob.vercel.app"),
   title: {
     default: "FitForJob - AI Application Assistant",
     template: "%s | FitForJob",
@@ -95,3 +96,5 @@ export default function RootLayout({
     </ClerkProvider>
   );
 }
+
+

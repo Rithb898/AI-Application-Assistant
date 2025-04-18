@@ -412,21 +412,6 @@ export default function LandingPage() {
           </Link>
         </div>
       </motion.section>
-
-      {/* Footer */}
-      <motion.footer // Fade in footer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.5 }} // Slight delay
-        className="relative z-10 border-t border-slate-800/50 py-8 px-4"
-      >
-        <div className="max-w-7xl mx-auto text-center text-sm text-slate-500">
-          <p>
-            © {new Date().getFullYear()} AI Application Assistant. All rights
-            reserved.
-          </p>
-        </div>
-      </motion.footer>
     </main>
   );
 }
