@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"; // Keep useState for now, might be needed elsewhere or remove later if not
+import { useAppState, AppState as AppStateType } from "@/hooks/useAppState";
+import { useResumeManager } from "@/hooks/useResumeManager";
+import { useJobFormSubmit } from "@/hooks/useJobFormSubmit"; // Import the form submit hook
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -31,16 +34,16 @@ import {
   UploadCloud, // Alternative for upload icon
   RefreshCw, // For changing resume
 } from "lucide-react";
-import { useDropzone } from "react-dropzone";
+// Removed useDropzone import, it's now in ResumeUploader
 import toast from "react-hot-toast";
 import { Progress } from "./ui/progress";
-// Removed ApplicationAnswers import as it's not used directly in this component anymore
-// import ApplicationAnswers from "./ApplicationAnswers";
 import { saveResponseToHistory, saveResumeToDB, getResumeFromDB } from "@/lib/storage";
+import ResumeUploader from "./ResumeUploader"; // Import the new component
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator"; // Added for visual separation
 import { motion, AnimatePresence } from "motion/react"; // Import motion and AnimatePresence
+import { generateRandomId } from "@/lib/utils"; // Import the utility function
 
 const formSchema = z.object({
   jobTitle: z.string().min(1, "Job title is required"),
@@ -52,152 +55,30 @@ const formSchema = z.object({
   companyDetails: z.string().optional(), // Made optional, but still available
 });
 
-// Define a type for our application state
-type AppState = {
-  status: "idle" | "parsing" | "generating" | "complete" | "error";
-  progress: number;
-  stage: string;
-  error?: string;
-};
+// AppState type is now imported from the hook
 
 export default function JobForm() {
   const router = useRouter();
-  const [resume, setResume] = useState<File | null>(null);
-  const [parsedResume, setParsedResume] = useState<string>("");
-  // Removed generatedAnswers state as we redirect immediately
+  const { appState, updateState, resetState } = useAppState();
+  const {
+    resume,
+    setResume,
+    parsedResume,
+    setParsedResume,
+    parseResume,
+    clearResume,
+  } = useResumeManager({ updateState });
+  const { handleSubmit: handleFormSubmit } = useJobFormSubmit({ updateState, parsedResume }); // Use the form submit hook
 
-  // --- Resume Loading Effect ---
-  useEffect(() => {
-    const loadResume = async () => {
-      try {
-        updateState({
-          status: "parsing",
-          progress: 10,
-          stage: "Checking for saved resume...",
-        });
-        
-        const storedResume = await getResumeFromDB();
-        
-        if (storedResume) {
-          setParsedResume(JSON.stringify(storedResume));
-          setResume({
-            name: "Saved Resume",
-            size: 0,
-            type: "application/pdf",
-            lastModified: Date.now(),
-          } as File);
-          
-          updateState({ status: "idle", progress: 50, stage: "Resume ready!" });
-          console.log("Saved resume loaded from MongoDB.");
-        } else {
-          updateState({ status: "idle", progress: 0, stage: "" });
-        }
-      } catch (error) {
-        console.error("Error loading resume:", error);
-        updateState({ status: "idle", progress: 0, stage: "" });
-      }
-    };
+  // Resume Loading Effect is now inside useResumeManager
 
-    loadResume();
-  }, []);
+  // --- Unique ID Generation (Moved to lib/utils) ---
 
-  // --- Unique ID Generation ---
-  const generateRandomId = (length: number = 12): string => {
-    const characters =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let result = "";
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(
-        Math.floor(Math.random() * characters.length),
-      );
-    }
-    return result;
-  };
+  // --- State Management (Moved to useAppState hook) ---
 
-  // --- State Management ---
-  const [appState, setAppState] = useState<AppState>({
-    status: "idle",
-    progress: 0,
-    stage: "",
-  });
+  // --- Resume Parsing Logic (Moved to useResumeManager hook) ---
 
-  const updateState = (updates: Partial<AppState>) => {
-    setAppState((current) => ({ ...current, ...updates }));
-  };
-
-  const resetState = () => {
-    setAppState({ status: "idle", progress: 0, stage: "" });
-  };
-
-  // --- Resume Parsing Logic ---
-  const parseResume = async (file: File) => {
-    updateState({
-      status: "parsing",
-      progress: 10,
-      stage: "Uploading resume...",
-    });
-    try {
-      const resumeFormData = new FormData();
-      resumeFormData.append("resume", file);
-
-      updateState({ progress: 20, stage: "Parsing resume with AI..." });
-      const parseResponse = await fetch("/api/parse-resume", {
-        method: "POST",
-        body: resumeFormData,
-      });
-
-      if (!parseResponse.ok) {
-        const errorData = await parseResponse
-          .json()
-          .catch(() => ({ message: "Resume parsing failed" }));
-        throw new Error(errorData.message || "Resume parsing failed");
-      }
-
-      const parsedData = await parseResponse.json();
-      const stringified = JSON.stringify(parsedData);
-      setParsedResume(stringified);
-
-      // Save to MongoDB instead of localStorage
-      updateState({ progress: 40, stage: "Saving resume to database..." });
-      await saveResumeToDB(parsedData);
-
-      updateState({ status: "idle", progress: 50, stage: "Resume ready!" });
-      toast.success("Resume parsed and saved successfully!");
-    } catch (error) {
-      console.error("Error parsing resume:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Failed to parse resume: ${errorMessage}`);
-      updateState({
-        status: "error",
-        stage: "Error parsing resume",
-        error: errorMessage,
-        progress: 0,
-      });
-      // Clear potentially corrupted state
-      setResume(null);
-      setParsedResume("");
-    }
-  };
-
-  // --- Dropzone Hook ---
-  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
-    accept: { "application/pdf": [".pdf"] },
-    maxFiles: 1,
-    noClick: !!parsedResume, // Don't open file dialog if parsed
-    noKeyboard: !!parsedResume,
-    onDrop: async (acceptedFiles) => {
-      const file = acceptedFiles[0];
-      if (file) {
-        setResume(file);
-        toast.dismiss(); // Dismiss any previous toasts
-        toast.loading("Parsing resume...");
-        await parseResume(file);
-        toast.dismiss(); // Dismiss loading toast
-      }
-    },
-    disabled: appState.status === "parsing" || appState.status === "generating",
-  });
+  // --- Dropzone Hook (Removed - Logic moved to ResumeUploader) ---
 
   // --- Form Setup ---
   const form = useForm<z.infer<typeof formSchema>>({
@@ -211,76 +92,7 @@ export default function JobForm() {
     },
   });
 
-  // --- Form Submission Logic ---
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!parsedResume) {
-      toast.error("Please upload and parse your resume first.");
-      return;
-    }
-    updateState({
-      status: "generating",
-      progress: 60,
-      stage: "Preparing data...",
-    });
-    try {
-      const formData = new FormData();
-      formData.append("jobTitle", values.jobTitle);
-      formData.append("company", values.company);
-      formData.append("techStack", values.techStack);
-      formData.append("description", values.description);
-      formData.append("companyDetails", values.companyDetails || ""); // Ensure empty string if null/undefined
-      formData.append("parsedResume", parsedResume);
-
-      updateState({
-        progress: 70,
-        stage: "Generating AI responses (this may take a moment)...",
-      });
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ message: "Response generation failed" }));
-        throw new Error(errorData.message || "Network response was not ok");
-      }
-
-      const data = await response.json();
-      updateState({ progress: 90, stage: "Saving response..." });
-
-      const responseId = generateRandomId();
-      saveResponseToHistory(
-        values.company,
-        values.jobTitle,
-        data,
-        responseId,
-        parseResume,
-      );
-
-      updateState({
-        status: "complete",
-        progress: 100,
-        stage: "Responses generated successfully!",
-      });
-      toast.success("Responses generated! Redirecting...");
-
-      // Redirect to the response page
-      router.push(`/response/${responseId}`);
-    } catch (error) {
-      console.error("Form submission error", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Failed to generate responses: ${errorMessage}`);
-      updateState({
-        status: "error",
-        stage: "Error generating responses",
-        error: errorMessage,
-        progress: 0,
-      });
-    }
-  };
+  // --- Form Submission Logic (Moved to useJobFormSubmit hook) ---
 
   // --- Control Variables ---
   const isProcessing =
@@ -288,20 +100,7 @@ export default function JobForm() {
   const isResumeReady = !!parsedResume && appState.status !== "parsing";
   const canSubmit = isResumeReady && !isProcessing;
 
-  // --- Helper Functions ---
-  const clearResume = async () => {
-    try {
-      // Save an empty object to effectively clear the resume
-      await saveResumeToDB({});
-      setParsedResume("");
-      setResume(null);
-      updateState({ progress: 0, stage: "" });
-      toast("Resume cleared. You can upload a new one.");
-    } catch (error) {
-      console.error("Error clearing resume:", error);
-      toast.error("Failed to clear resume.");
-    }
-  };
+  // --- Helper Functions (clearResume moved to useResumeManager hook) ---
 
   // --- Status Indicator Component ---
   const StatusIndicator = () => {
@@ -412,8 +211,9 @@ export default function JobForm() {
           transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
         >
           <Form {...form}>
+            {/* Use handleFormSubmit from the hook */}
             <form
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(handleFormSubmit)}
               className="divide-y divide-slate-700/80"
             >
               {/* Section 1: Job Information */}
@@ -495,79 +295,17 @@ export default function JobForm() {
                   <FileText className="w-5 h-5 text-purple-400" />
                   Your Resume
                 </h3>
-                <div
-                  {...getRootProps()}
-                  className={`relative w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer
-                      ${isProcessing ? "opacity-60 pointer-events-none" : ""}
-                      ${isDragActive ? "border-purple-400 bg-purple-900/20" : "border-slate-600 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/60"}
-                      ${isResumeReady ? "border-green-500/50 bg-green-900/10 hover:border-green-500/70" : ""}
-                      ${!parsedResume && !isProcessing ? "cursor-pointer" : "cursor-default"}
-                    `}
-                >
-                  <input
-                    {...getInputProps()}
-                    disabled={isProcessing || !!parsedResume}
-                  />
-                  {isResumeReady ? (
-                    <div className="text-center">
-                      <CheckCircle2 className="h-10 w-10 text-green-400 mx-auto mb-3" />
-                      <p className="font-medium text-slate-100">
-                        {resume?.name || "Resume Ready"}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        AI processing complete. Resume is ready.
-                      </p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="mt-3 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-900/30 h-auto px-2 py-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          clearResume();
-                        }} // Prevent dropzone activation
-                        disabled={isProcessing}
-                      >
-                        <RefreshCw className="w-3 h-3 mr-1" /> Change Resume
-                      </Button>
-                    </div>
-                  ) : isProcessing && appState.status === "parsing" ? (
-                    <div className="text-center">
-                      <Loader2 className="h-10 w-10 text-blue-400 mx-auto mb-3 animate-spin" />
-                      <p className="font-medium text-slate-200">
-                        Parsing Resume...
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {resume?.name}
-                      </p>
-                    </div>
-                  ) : isDragActive ? (
-                    <div className="text-center pointer-events-none">
-                      <UploadCloud className="h-10 w-10 text-purple-400 mx-auto mb-3" />
-                      <p className="font-medium text-purple-300">
-                        Drop the PDF file here
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <UploadCloud className="h-10 w-10 text-slate-500 mx-auto mb-3" />
-                      <p className="font-medium text-slate-300">
-                        Drag & drop resume here
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1 mb-3">or</p>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={open}
-                        disabled={isProcessing}
-                      >
-                        Click to Upload PDF
-                      </Button>
-                      <p className="text-xs text-slate-600 mt-3">Max 10MB</p>
-                    </div>
-                  )}
-                </div>
+                {/* Render the ResumeUploader component */}
+                <ResumeUploader
+                  resume={resume} // From useResumeManager
+                  setResume={setResume} // From useResumeManager
+                  parsedResume={parsedResume} // From useResumeManager
+                  setParsedResume={setParsedResume} // From useResumeManager
+                  appState={appState} // Pass state from useAppState
+                  updateState={updateState} // Pass update function from useAppState
+                  clearResume={clearResume} // From useResumeManager
+                  parseResume={parseResume} // From useResumeManager
+                />
                 {!isResumeReady && !isProcessing && (
                   <FormDescription className="text-xs text-center text-slate-500 pt-1">
                     Your resume is parsed locally by AI and is required to
@@ -672,4 +410,3 @@ export default function JobForm() {
     </main>
   );
 }
-
