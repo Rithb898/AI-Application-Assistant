@@ -6,8 +6,8 @@ import { generatePrompt, generateSystemPrompt } from "@/lib/prompt";
 
 // Define primary and fallback models
 const models = {
-  primary: "deepseek-r1-distill-llama-70b",
-  fallback: "llama-3.3-70b-versatile",
+  primary: process.env.GROQ_PRIMARY_MODEL || "deepseek-r1-distill-llama-70b",
+  fallback: process.env.GROQ_FALLBACK_MODEL || "llama-3.3-70b-versatile",
 };
 
 // Common configuration for model generation
@@ -35,6 +35,15 @@ const getModelConfig = (
   timeout: 30000, // 30 second timeout
 });
 
+async function tryGenerateObjectWithConfig(config: any) {
+  try {
+    const { object } = await generateObject(config);
+    return object;
+  } catch (error: any) {
+    throw error;
+  }
+}
+
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   
@@ -57,6 +66,14 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // ✅ Validate parsedResume is valid JSON
+    try {
+      JSON.parse(parsedResume || ""); // Attempt to parse, empty string defaults to valid empty object
+    } catch (jsonError) {
+      console.error("Invalid parsedResume JSON:", jsonError);
+      return NextResponse.json({ error: "Invalid resume data. Please upload a valid resume." }, { status: 400 });
+    }
     
     // Use the already parsed resume data from the client
     const resumeText = parsedResume || "";
@@ -72,17 +89,15 @@ export async function POST(req: NextRequest) {
     
     try {
       // Try with primary model first
-      const { object } = await generateObject(
-        getModelConfig(
-          jobTitle.trim(),
-          company.trim(),
-          techStack?.trim() || "",
-          description.trim(),
-          companyDetails?.trim() || "",
-          resumeText.trim(),
-          models.primary
-        )
-      );
+      const object = await tryGenerateObjectWithConfig(getModelConfig(
+        jobTitle.trim(),
+        company.trim(),
+        techStack?.trim() || "",
+        description.trim(),
+        companyDetails?.trim() || "",
+        resumeText.trim(),
+        models.primary
+      ));
       
       // Log successful completion
       console.log({
@@ -109,17 +124,15 @@ export async function POST(req: NextRequest) {
           timestamp: new Date().toISOString()
         });
         
-        const { object } = await generateObject(
-          getModelConfig(
-            jobTitle.trim(),
-            company.trim(),
-            techStack?.trim() || "",
-            description.trim(),
-            companyDetails?.trim() || "",
-            resumeText.trim(),
-            models.fallback
-          )
-        );
+        const object = await tryGenerateObjectWithConfig(getModelConfig(
+          jobTitle.trim(),
+          company.trim(),
+          techStack?.trim() || "",
+          description.trim(),
+          companyDetails?.trim() || "",
+          resumeText.trim(),
+          models.fallback
+        ));
         
         // Log successful completion with fallback
         console.log({
