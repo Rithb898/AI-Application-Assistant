@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "motion/react"; // Corrected import path
-import { AppState } from "./JobForm"; // Assuming AppState type is exported or moved
+import { AppState } from "@/hooks/useAppState"; // Assuming AppState type is exported or moved
 
 interface ResumeUploaderProps {
   resume: File | null;
