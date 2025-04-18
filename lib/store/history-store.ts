@@ -19,4 +19,3 @@ export const useHistoryStore = create<HistoryStore>((set) => ({
   removeFromHistory: () => {}, // No-op as we use MongoDB
   clearHistory: () => {}, // No-op as we use MongoDB
 }));
-

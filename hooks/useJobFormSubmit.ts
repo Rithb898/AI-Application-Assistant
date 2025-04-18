@@ -22,92 +22,97 @@ type UseJobFormSubmitProps = {
   parsedResume: string; // Pass the parsed resume string
 };
 
-export function useJobFormSubmit({ updateState, parsedResume }: UseJobFormSubmitProps) {
+export function useJobFormSubmit({
+  updateState,
+  parsedResume,
+}: UseJobFormSubmitProps) {
   const router = useRouter();
 
-  const handleSubmit = useCallback(async (values: FormValues) => {
-    if (!parsedResume) {
-      toast.error("Please upload and parse your resume first.");
-      // No need to update state here, the button should be disabled anyway
-      return;
-    }
-
-    updateState({
-      status: "generating",
-      progress: 60,
-      stage: "Preparing data...",
-    });
-
-    try {
-      const formData = new FormData();
-      formData.append("jobTitle", values.jobTitle);
-      formData.append("company", values.company);
-      formData.append("techStack", values.techStack);
-      formData.append("description", values.description);
-      formData.append("companyDetails", values.companyDetails || "");
-      formData.append("parsedResume", parsedResume);
-
-      updateState({
-        progress: 70,
-        stage: "Generating AI responses (this may take a moment)...",
-      });
-
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ message: "Response generation failed" }));
-        throw new Error(errorData.message || "Network response was not ok");
+  const handleSubmit = useCallback(
+    async (values: FormValues) => {
+      if (!parsedResume) {
+        toast.error("Please upload and parse your resume first.");
+        // No need to update state here, the button should be disabled anyway
+        return;
       }
 
-      const data = await response.json();
-      updateState({ progress: 90, stage: "Saving response..." });
+      updateState({
+        status: "generating",
+        progress: 60,
+        stage: "Preparing data...",
+      });
 
-      const responseId = generateRandomId();
-      // Ensure parsedResume is valid JSON before parsing
-      let resumeData = {};
       try {
-        resumeData = JSON.parse(parsedResume);
-      } catch (parseError) {
-        console.error("Error parsing resume JSON for history:", parseError);
-        // Decide how to handle this - maybe save without resume data or throw?
-        // For now, let's save with an empty object
+        const formData = new FormData();
+        formData.append("jobTitle", values.jobTitle);
+        formData.append("company", values.company);
+        formData.append("techStack", values.techStack);
+        formData.append("description", values.description);
+        formData.append("companyDetails", values.companyDetails || "");
+        formData.append("parsedResume", parsedResume);
+
+        updateState({
+          progress: 70,
+          stage: "Generating AI responses (this may take a moment)...",
+        });
+
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response
+            .json()
+            .catch(() => ({ message: "Response generation failed" }));
+          throw new Error(errorData.message || "Network response was not ok");
+        }
+
+        const data = await response.json();
+        updateState({ progress: 90, stage: "Saving response..." });
+
+        const responseId = generateRandomId();
+        // Ensure parsedResume is valid JSON before parsing
+        let resumeData = {};
+        try {
+          resumeData = JSON.parse(parsedResume);
+        } catch (parseError) {
+          console.error("Error parsing resume JSON for history:", parseError);
+          // Decide how to handle this - maybe save without resume data or throw?
+          // For now, let's save with an empty object
+        }
+
+        saveResponseToHistory(
+          values.company,
+          values.jobTitle,
+          data,
+          responseId,
+          resumeData,
+        );
+
+        updateState({
+          status: "complete",
+          progress: 100,
+          stage: "Responses generated successfully!",
+        });
+        toast.success("Responses generated! Redirecting...");
+
+        router.push(`/response/${responseId}`);
+      } catch (error) {
+        console.error("Form submission error", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        toast.error(`Failed to generate responses: ${errorMessage}`);
+        updateState({
+          status: "error",
+          stage: "Error generating responses",
+          error: errorMessage,
+          progress: 0,
+        });
       }
-
-      saveResponseToHistory(
-        values.company,
-        values.jobTitle,
-        data,
-        responseId,
-        resumeData
-      );
-
-      updateState({
-        status: "complete",
-        progress: 100,
-        stage: "Responses generated successfully!",
-      });
-      toast.success("Responses generated! Redirecting...");
-
-      router.push(`/response/${responseId}`);
-
-    } catch (error) {
-      console.error("Form submission error", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Failed to generate responses: ${errorMessage}`);
-      updateState({
-        status: "error",
-        stage: "Error generating responses",
-        error: errorMessage,
-        progress: 0,
-      });
-    }
-  }, [parsedResume, updateState, router]);
+    },
+    [parsedResume, updateState, router],
+  );
 
   return { handleSubmit };
 }

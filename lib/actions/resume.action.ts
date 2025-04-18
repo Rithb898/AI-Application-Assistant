@@ -45,9 +45,9 @@ export async function getUserResume() {
     if (!userId) return null;
 
     await connect();
-    
+
     const resume = await Resume.findOne({ userId }).sort({ createdAt: -1 });
-    
+
     return resume ? JSON.parse(JSON.stringify(resume.content)) : null;
   } catch (error: any) {
     console.error("Error fetching resume:", error);

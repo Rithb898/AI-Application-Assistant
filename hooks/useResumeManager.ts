@@ -21,7 +21,8 @@ export function useResumeManager({ updateState }: UseResumeManagerProps) {
           stage: "Checking for saved resume...",
         });
         const storedResume = await getResumeFromDB();
-        if (storedResume && Object.keys(storedResume).length > 0) { // Check if not empty object
+        if (storedResume && Object.keys(storedResume).length > 0) {
+          // Check if not empty object
           setParsedResume(JSON.stringify(storedResume));
           // Create a placeholder File object since we don't have the original file
           setResume({
@@ -47,54 +48,57 @@ export function useResumeManager({ updateState }: UseResumeManagerProps) {
   }, []); // Run only once on mount
 
   // Parse resume function
-  const parseResume = useCallback(async (file: File) => {
-    setResume(file); // Set the actual file object
-    updateState({
-      status: "parsing",
-      progress: 10,
-      stage: "Uploading resume...",
-    });
-    try {
-      const resumeFormData = new FormData();
-      resumeFormData.append("resume", file);
-
-      updateState({ progress: 20, stage: "Parsing resume with AI..." });
-      const parseResponse = await fetch("/api/parse-resume", {
-        method: "POST",
-        body: resumeFormData,
-      });
-
-      if (!parseResponse.ok) {
-        const errorData = await parseResponse
-          .json()
-          .catch(() => ({ message: "Resume parsing failed" }));
-        throw new Error(errorData.message || "Resume parsing failed");
-      }
-
-      const parsedData = await parseResponse.json();
-      const stringified = JSON.stringify(parsedData);
-      setParsedResume(stringified);
-
-      updateState({ progress: 40, stage: "Saving resume to database..." });
-      await saveResumeToDB(parsedData);
-
-      updateState({ status: "idle", progress: 50, stage: "Resume ready!" });
-      toast.success("Resume parsed and saved successfully!");
-    } catch (error) {
-      console.error("Error parsing resume:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Failed to parse resume: ${errorMessage}`);
+  const parseResume = useCallback(
+    async (file: File) => {
+      setResume(file); // Set the actual file object
       updateState({
-        status: "error",
-        stage: "Error parsing resume",
-        error: errorMessage,
-        progress: 0,
+        status: "parsing",
+        progress: 10,
+        stage: "Uploading resume...",
       });
-      setResume(null);
-      setParsedResume("");
-    }
-  }, [updateState]);
+      try {
+        const resumeFormData = new FormData();
+        resumeFormData.append("resume", file);
+
+        updateState({ progress: 20, stage: "Parsing resume with AI..." });
+        const parseResponse = await fetch("/api/parse-resume", {
+          method: "POST",
+          body: resumeFormData,
+        });
+
+        if (!parseResponse.ok) {
+          const errorData = await parseResponse
+            .json()
+            .catch(() => ({ message: "Resume parsing failed" }));
+          throw new Error(errorData.message || "Resume parsing failed");
+        }
+
+        const parsedData = await parseResponse.json();
+        const stringified = JSON.stringify(parsedData);
+        setParsedResume(stringified);
+
+        updateState({ progress: 40, stage: "Saving resume to database..." });
+        await saveResumeToDB(parsedData);
+
+        updateState({ status: "idle", progress: 50, stage: "Resume ready!" });
+        toast.success("Resume parsed and saved successfully!");
+      } catch (error) {
+        console.error("Error parsing resume:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        toast.error(`Failed to parse resume: ${errorMessage}`);
+        updateState({
+          status: "error",
+          stage: "Error parsing resume",
+          error: errorMessage,
+          progress: 0,
+        });
+        setResume(null);
+        setParsedResume("");
+      }
+    },
+    [updateState],
+  );
 
   // Clear resume function
   const clearResume = useCallback(async () => {
@@ -109,7 +113,11 @@ export function useResumeManager({ updateState }: UseResumeManagerProps) {
       console.error("Error clearing resume:", error);
       toast.error("Failed to clear resume.");
       // Optionally reset state to idle if it was in error
-      updateState({ status: "idle", progress: 0, stage: "Error clearing resume" });
+      updateState({
+        status: "idle",
+        progress: 0,
+        stage: "Error clearing resume",
+      });
     }
   }, [updateState]);
 

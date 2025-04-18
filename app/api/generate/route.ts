@@ -18,7 +18,7 @@ const getModelConfig = (
   description: string,
   companyDetails: string,
   resumeText: string,
-  modelName: string
+  modelName: string,
 ) => ({
   model: groq(modelName),
   schema: jobApplicationSchema,
@@ -29,7 +29,7 @@ const getModelConfig = (
     techStack,
     description,
     companyDetails,
-    resumeText
+    resumeText,
   ),
   temperature: 0.7,
   timeout: 30000, // 30 second timeout
@@ -46,11 +46,11 @@ async function tryGenerateObjectWithConfig(config: any) {
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
-  
+
   try {
     // Parse form data
     const formData = await req.formData();
-    
+
     // Extract fields
     const jobTitle = formData.get("jobTitle") as string;
     const company = formData.get("company") as string;
@@ -58,12 +58,12 @@ export async function POST(req: NextRequest) {
     const description = formData.get("description") as string;
     const companyDetails = formData.get("companyDetails") as string;
     const parsedResume = formData.get("parsedResume") as string;
-    
+
     // Validate required fields
     if (!jobTitle || !company || !description) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -72,33 +72,38 @@ export async function POST(req: NextRequest) {
       JSON.parse(parsedResume || ""); // Attempt to parse, empty string defaults to valid empty object
     } catch (jsonError) {
       console.error("Invalid parsedResume JSON:", jsonError);
-      return NextResponse.json({ error: "Invalid resume data. Please upload a valid resume." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid resume data. Please upload a valid resume." },
+        { status: 400 },
+      );
     }
-    
+
     // Use the already parsed resume data from the client
     const resumeText = parsedResume || "";
-    
+
     // Log request start
     console.log({
       event: "job_application_generation_started",
       model: models.primary,
       jobTitle,
       company,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    
+
     try {
       // Try with primary model first
-      const object = await tryGenerateObjectWithConfig(getModelConfig(
-        jobTitle.trim(),
-        company.trim(),
-        techStack?.trim() || "",
-        description.trim(),
-        companyDetails?.trim() || "",
-        resumeText.trim(),
-        models.primary
-      ));
-      
+      const object = await tryGenerateObjectWithConfig(
+        getModelConfig(
+          jobTitle.trim(),
+          company.trim(),
+          techStack?.trim() || "",
+          description.trim(),
+          companyDetails?.trim() || "",
+          resumeText.trim(),
+          models.primary,
+        ),
+      );
+
       // Log successful completion
       console.log({
         event: "job_application_generation_completed",
@@ -106,14 +111,14 @@ export async function POST(req: NextRequest) {
         jobTitle,
         company,
         processingTimeMs: Date.now() - startTime,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
+
       return NextResponse.json(object);
     } catch (primaryError: any) {
       // If we hit rate limits (429) or service unavailable (503), try the fallback model
       if (
-        primaryError.response?.status === 429 || 
+        primaryError.response?.status === 429 ||
         primaryError.response?.status === 503
       ) {
         console.log({
@@ -121,19 +126,21 @@ export async function POST(req: NextRequest) {
           primaryError: primaryError.message,
           primaryStatus: primaryError.response?.status,
           fallbackModel: models.fallback,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
-        
-        const object = await tryGenerateObjectWithConfig(getModelConfig(
-          jobTitle.trim(),
-          company.trim(),
-          techStack?.trim() || "",
-          description.trim(),
-          companyDetails?.trim() || "",
-          resumeText.trim(),
-          models.fallback
-        ));
-        
+
+        const object = await tryGenerateObjectWithConfig(
+          getModelConfig(
+            jobTitle.trim(),
+            company.trim(),
+            techStack?.trim() || "",
+            description.trim(),
+            companyDetails?.trim() || "",
+            resumeText.trim(),
+            models.fallback,
+          ),
+        );
+
         // Log successful completion with fallback
         console.log({
           event: "job_application_generation_completed",
@@ -141,12 +148,12 @@ export async function POST(req: NextRequest) {
           jobTitle,
           company,
           processingTimeMs: Date.now() - startTime,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
-        
+
         return NextResponse.json(object);
       }
-      
+
       // Re-throw if it's not a rate limit error
       throw primaryError;
     }
@@ -157,47 +164,54 @@ export async function POST(req: NextRequest) {
       error: error.message,
       stack: error.stack,
       timestamp: new Date().toISOString(),
-      processingTimeMs: Date.now() - startTime
+      processingTimeMs: Date.now() - startTime,
     });
-    
+
     // Handle specific error types
     if (NoObjectGeneratedError.isInstance(error)) {
       console.log({
         errorType: "NoObjectGeneratedError",
         cause: error.cause,
         text: error.text?.substring(0, 200), // Log just part of the text to avoid huge logs
-        usage: error.usage
+        usage: error.usage,
       });
-      
+
       return NextResponse.json(
-        { 
+        {
           error: "Could not generate a valid application response",
-          details: "The AI was unable to generate content that matches the required format."
+          details:
+            "The AI was unable to generate content that matches the required format.",
         },
-        { status: 422 }
+        { status: 422 },
       );
     }
-    
+
     // Network or timeout errors
-    if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT') {
+    if (error.code === "ECONNRESET" || error.code === "ETIMEDOUT") {
       return NextResponse.json(
         { error: "Connection error. Please try again later." },
-        { status: 503 }
+        { status: 503 },
       );
     }
-    
+
     // If both models have rate limiting issues
     if (error.response?.status === 429) {
       return NextResponse.json(
-        { error: "Service temporarily unavailable due to high demand. Please try again later." },
-        { status: 429 }
+        {
+          error:
+            "Service temporarily unavailable due to high demand. Please try again later.",
+        },
+        { status: 429 },
       );
     }
-    
+
     // Generic error fallback
     return NextResponse.json(
-      { error: "Failed to generate job application response", details: error.message },
-      { status: 500 }
+      {
+        error: "Failed to generate job application response",
+        details: error.message,
+      },
+      { status: 500 },
     );
   }
 }

@@ -22,7 +22,7 @@ An intelligent tool that helps job seekers generate personalized application res
 
 - **Framework**: Next.js 15 with App Router and Turbopack
 - **UI**: Tailwind CSS 4 with Shadcn UI components
-- **AI**: AI SDK with Groq LLama 3.3 model for response generation
+- **AI**: AI SDK with Groq Deepsheek ,LLama 3.3 model for response generation
 - **PDF Processing**: pdf-parse for resume extraction
 - **Form Handling**: React Hook Form with Zod validation
 - **State Management**: Local storage and MongoDB for persistence
@@ -31,10 +31,41 @@ An intelligent tool that helps job seekers generate personalized application res
 - **Notifications**: React Hot Toast and Sonner
 - **Animation**: Motion library for UI animations
 - **Analytics**: PostHog for usage tracking
+- **Database**: MongoDB for storing user data and responses
 
 ## Getting Started
 
-First, run the development server with Turbopack for faster development:
+First, clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/YourUsername/fitforjob.git
+cd fitforjob
+npm install
+# or
+pnpm install
+# or
+yarn install
+```
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+CLERK_WEBHOOK_SECRET=your_clerk_webhook_secret
+
+# MongoDB
+MONGODB_URI=your_mongodb_connection_string
+
+# Groq API
+GROQ_API_KEY=your_groq_api_key
+
+# PostHog Analytics
+NEXT_PUBLIC_POSTHOG_KEY=your_posthog_key
+```
+
+Then, run the development server with Turbopack for faster development:
 
 ```bash
 npm run dev
@@ -83,6 +114,12 @@ This project uses:
 
 Deploy on Vercel for the best experience:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FRithb898%2Fai-application-assistant)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FYourUsername%2Ffitforjob)
 
+## Contributing
 
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

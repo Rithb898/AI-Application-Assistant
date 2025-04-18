@@ -41,7 +41,7 @@ export const resumeSchema = z.object({
       institution: z.string(),
       startDate: z.string(),
       endDate: z.string().optional(),
-    })
+    }),
   ),
   workExperience: z.array(
     z.object({
@@ -50,7 +50,7 @@ export const resumeSchema = z.object({
       startDate: z.string(),
       endDate: z.string().optional(),
       description: z.string(),
-    })
+    }),
   ),
   skills: z.object({
     technicalSkills: z.array(z.string()),
@@ -61,7 +61,7 @@ export const resumeSchema = z.object({
       title: z.string(),
       description: z.string(),
       technologies: z.array(z.string()),
-    })
+    }),
   ),
   certifications: z.array(z.string()),
   languages: z.array(z.string()),

@@ -39,4 +39,3 @@ export const useResumeStore = create<ResumeStore>((set) => ({
   setResumeData: (data) => set({ resumeData: data }),
   clearResumeData: () => set({ resumeData: null }),
 }));
-

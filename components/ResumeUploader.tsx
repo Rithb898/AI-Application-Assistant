@@ -3,12 +3,7 @@
 import React from "react";
 import { useDropzone, Accept } from "react-dropzone";
 import { Button } from "@/components/ui/button";
-import {
-  Loader2,
-  CheckCircle2,
-  UploadCloud,
-  RefreshCw,
-} from "lucide-react";
+import { Loader2, CheckCircle2, UploadCloud, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "motion/react"; // Corrected import path
 import { AppState } from "@/hooks/useAppState"; // Assuming AppState type is exported or moved
@@ -38,7 +33,7 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
     appState.status === "parsing" || appState.status === "generating";
   const isResumeReady = !!parsedResume && appState.status !== "parsing";
 
-  const {getRootProps, getInputProps, isDragActive, open } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     accept: { "application/pdf": [".pdf"] } as Accept, // Ensure correct type for accept
     maxFiles: 1,
     noClick: !!parsedResume, // Don't open file dialog if parsed
@@ -66,10 +61,7 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
           ${!parsedResume && !isProcessing ? "cursor-pointer" : "cursor-default"}
         `}
     >
-      <input
-        {...getInputProps()}
-        disabled={isProcessing || !!parsedResume}
-      />
+      <input {...getInputProps()} disabled={isProcessing || !!parsedResume} />
       {isResumeReady ? (
         <div className="text-center">
           <CheckCircle2 className="h-10 w-10 text-green-400 mx-auto mb-3" />
@@ -96,26 +88,18 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
       ) : appState.status === "parsing" ? (
         <div className="text-center">
           <Loader2 className="h-10 w-10 text-blue-400 mx-auto mb-3 animate-spin" />
-          <p className="font-medium text-slate-200">
-            Parsing Resume...
-          </p>
-          <p className="text-xs text-slate-400 mt-1">
-            {resume?.name}
-          </p>
+          <p className="font-medium text-slate-200">Parsing Resume...</p>
+          <p className="text-xs text-slate-400 mt-1">{resume?.name}</p>
         </div>
       ) : isDragActive ? (
         <div className="text-center pointer-events-none">
           <UploadCloud className="h-10 w-10 text-purple-400 mx-auto mb-3" />
-          <p className="font-medium text-purple-300">
-            Drop the PDF file here
-          </p>
+          <p className="font-medium text-purple-300">Drop the PDF file here</p>
         </div>
       ) : (
         <div className="text-center">
           <UploadCloud className="h-10 w-10 text-slate-500 mx-auto mb-3" />
-          <p className="font-medium text-slate-300">
-            Drag & drop resume here
-          </p>
+          <p className="font-medium text-slate-300">Drag & drop resume here</p>
           <p className="text-xs text-slate-500 mt-1 mb-3">or</p>
           <Button
             type="button"

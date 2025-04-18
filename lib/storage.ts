@@ -7,7 +7,10 @@ import {
   getResponseById as getResponseByIdFromDB,
   deleteResponse as deleteResponseFromDB,
 } from "./actions/response.action";
-import { saveResume as saveResumeAction, getUserResume } from "./actions/resume.action";
+import {
+  saveResume as saveResumeAction,
+  getUserResume,
+} from "./actions/resume.action";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 
@@ -18,7 +21,7 @@ export async function saveResumeToDB(resumeData: object): Promise<void> {
     if (!userId) {
       throw new Error("User must be authenticated to save resume.");
     }
-    
+
     await saveResumeAction(resumeData);
     console.log(`Resume saved to MongoDB for user ${userId}`);
   } catch (error) {
@@ -35,7 +38,7 @@ export async function getResumeFromDB(): Promise<object | null> {
       console.log("User not authenticated. Cannot fetch resume.");
       return null;
     }
-    
+
     const resume = await getUserResume();
     return resume;
   } catch (error) {
@@ -50,7 +53,7 @@ export async function saveResponseToHistory(
   jobTitle: string,
   data: GeneratedContentType,
   id: string,
-  resumeData: object
+  resumeData: object,
 ): Promise<void> {
   // Create new history item structure
   const newItem: HistoryItemType = {
@@ -103,7 +106,7 @@ export async function getResponseHistory(): Promise<HistoryItemType[]> {
 
 // Get a specific history item by ID (from MongoDB if authenticated)
 export async function getResponseById(
-  id: string
+  id: string,
 ): Promise<HistoryItemType | null> {
   try {
     const { userId } = await auth();
@@ -146,4 +149,3 @@ export async function deleteResponseFromHistory(id: string): Promise<void> {
     throw new Error(`Failed to delete response from history: ${error.message}`);
   }
 }
-

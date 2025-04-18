@@ -71,18 +71,18 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider>
-      <html lang='en' suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning>
         <body
           className={`${inter.className} antialiased bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950`}
         >
           <ThemeProvider
-            attribute='class'
-            defaultTheme='dark'
+            attribute="class"
+            defaultTheme="dark"
             enableSystem
             disableTransitionOnChange
           >
             <PostHogProvider>
-              <Toaster position='top-right' reverseOrder={false} />
+              <Toaster position="top-right" reverseOrder={false} />
               <Navbar />
               {children}
               <footer className="bg-slate-900 text-center text-xs text-slate-600 mt-8 py-4">

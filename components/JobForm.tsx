@@ -37,7 +37,11 @@ import {
 // Removed useDropzone import, it's now in ResumeUploader
 import toast from "react-hot-toast";
 import { Progress } from "./ui/progress";
-import { saveResponseToHistory, saveResumeToDB, getResumeFromDB } from "@/lib/storage";
+import {
+  saveResponseToHistory,
+  saveResumeToDB,
+  getResumeFromDB,
+} from "@/lib/storage";
 import ResumeUploader from "./ResumeUploader"; // Import the new component
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -70,7 +74,10 @@ export default function JobForm() {
   } = useResumeManager({ updateState });
   const handleParseResume = useCallback(parseResume, [parseResume]);
   const handleClearResume = useCallback(clearResume, [clearResume]);
-  const { handleSubmit: handleFormSubmit } = useJobFormSubmit({ updateState, parsedResume });
+  const { handleSubmit: handleFormSubmit } = useJobFormSubmit({
+    updateState,
+    parsedResume,
+  });
 
   // Resume Loading Effect is now inside useResumeManager
 

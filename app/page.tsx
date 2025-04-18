@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
-  Zap,
   FileText,
   Brain,
   Clock,

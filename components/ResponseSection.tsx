@@ -53,29 +53,29 @@ export default function ResponseSection({
 
   const RegenerateButton = (
     <Button
-      variant='outline'
-      size='sm'
+      variant="outline"
+      size="sm"
       onClick={onRegenerate}
       disabled={isButtonDisabled} // Use combined disabled state
       className={cn(
         "gap-1.5 h-8 px-3 rounded-md text-xs", // Adjusted size/padding/rounding
         "bg-slate-800/60 border-slate-700 text-purple-300", // Default style
         "hover:bg-purple-900/50 hover:border-purple-700/70 hover:text-purple-200", // Hover style
-        "disabled:opacity-60 disabled:cursor-not-allowed" // Disabled style
+        "disabled:opacity-60 disabled:cursor-not-allowed", // Disabled style
       )}
     >
       {isRegenerating ? (
         <>
-          <Loader2 className='w-3.5 h-3.5 animate-spin' />
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
           Generating...
         </>
       ) : (
         <>
-          <RefreshCw className='w-3.5 h-3.5' />
+          <RefreshCw className="w-3.5 h-3.5" />
           Regenerate
           {/* Optionally show a help icon if regeneration is *specifically* disabled */}
           {regenerationDisabled && (
-            <HelpCircle className='w-3.5 h-3.5 ml-1 text-slate-500' />
+            <HelpCircle className="w-3.5 h-3.5 ml-1 text-slate-500" />
           )}
         </>
       )}
@@ -83,48 +83,48 @@ export default function ResponseSection({
   );
 
   return (
-    <div className='mb-5 bg-slate-800/50 rounded-xl overflow-hidden border border-slate-700/60 shadow-lg backdrop-blur-sm'>
+    <div className="mb-5 bg-slate-800/50 rounded-xl overflow-hidden border border-slate-700/60 shadow-lg backdrop-blur-sm">
       {" "}
       {/* Adjusted spacing */}
       <div
         className={`flex items-center gap-3 p-4 bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white`}
       >
-        <div className='w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0'>
+        <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
           {" "}
           {/* Adjusted size/shape */}
           {icon}
         </div>
-        <h2 className='text-base md:text-lg font-semibold line-clamp-1'>
+        <h2 className="text-base md:text-lg font-semibold line-clamp-1">
           {title}
         </h2>{" "}
         {/* Adjusted text size */}
       </div>
-      <div className='p-4 md:p-5 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap'>
+      <div className="p-4 md:p-5 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
         {" "}
         {/* Adjusted padding/size */}
         {content}
       </div>
-      <div className='flex justify-end p-3 gap-2 border-t border-slate-700/40 bg-slate-900/40'>
+      <div className="flex justify-end p-3 gap-2 border-t border-slate-700/40 bg-slate-900/40">
         {/* Copy Button */}
         <Button
-          variant='ghost' // Changed variant
-          size='sm'
+          variant="ghost" // Changed variant
+          size="sm"
           onClick={copyToClipboard}
           className={cn(
             "gap-1.5 h-8 px-3 rounded-md text-xs", // Adjusted size/padding/rounding
             copied
               ? "bg-green-900/30 text-green-400 border-green-800/0 hover:bg-green-900/40" // Adjusted success style
-              : "bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-slate-100" // Adjusted default style
+              : "bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-slate-100", // Adjusted default style
           )}
         >
           {copied ? (
             <>
-              <Check className='w-3.5 h-3.5' />
+              <Check className="w-3.5 h-3.5" />
               Copied!
             </>
           ) : (
             <>
-              <Copy className='w-3.5 h-3.5' />
+              <Copy className="w-3.5 h-3.5" />
               Copy
             </>
           )}
@@ -136,7 +136,7 @@ export default function ResponseSection({
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>{RegenerateButton}</TooltipTrigger>
-                <TooltipContent className='bg-slate-950 border-slate-700 text-slate-200 text-xs'>
+                <TooltipContent className="bg-slate-950 border-slate-700 text-slate-200 text-xs">
                   <p>{regenerationTooltip}</p>
                 </TooltipContent>
               </Tooltip>

@@ -8,7 +8,7 @@ import { HistoryItemType } from "@/lib/types";
 
 // Save a response to MongoDB
 export async function saveResponse(
-  responseData: Omit<HistoryItemType, "userId">
+  responseData: Omit<HistoryItemType, "userId">,
 ) {
   try {
     const { userId } = await auth();
@@ -32,7 +32,7 @@ export async function saveResponse(
       // MongoDB duplicate key error
       console.error("Duplicate Key Error Details:", error.keyValue);
       throw new Error(
-        `Failed to save: Response with ID ${error.keyValue?.id} might already exist.`
+        `Failed to save: Response with ID ${error.keyValue?.id} might already exist.`,
       );
     }
     // Rethrow a generic error or the specific one
