@@ -77,7 +77,7 @@ export const parsedResumePrompt = (
 
 ### RESUME TEXT
 """
-${parsed.text}
+${parsed}
 """
 
 Analyze this resume thoroughly and extract all relevant information into the following structured JSON format. When information is not explicitly stated but can be reasonably inferred, make appropriate inferences. When information is completely absent, use empty strings or arrays.
