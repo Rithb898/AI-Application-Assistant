@@ -74,7 +74,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body
-          className={`${inter.className} antialiased bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950`}
+          className={`${inter.className} antialiased bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950 overflow-x-hidden`}
         >
           <ThemeProvider
             attribute="class"
@@ -85,7 +85,7 @@ export default function RootLayout({
             <PostHogProvider>
               <Toaster position="top-right" reverseOrder={false} />
               <Navbar />
-              {children}
+              <main className="min-h-screen">{children}</main>
               <footer className="bg-slate-900 text-center text-xs text-slate-600 mt-8 py-4">
                 Powered by AI ✨ © 2025 Fit For Job
               </footer>
@@ -96,5 +96,3 @@ export default function RootLayout({
     </ClerkProvider>
   );
 }
-
-

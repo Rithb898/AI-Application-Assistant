@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, Fragment } from "react"; // Added Fragment
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -30,9 +30,8 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator"; // Import Separator
 import toast from "react-hot-toast";
-import { motion, AnimatePresence } from "motion/react"; // Ensure using framer-motion
+import { motion } from "motion/react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // --- Type definitions and Animation Variants (unchanged) ---
@@ -130,17 +129,6 @@ export default function ResponsePage() {
         setResponseData(data);
         setApplicationMaterials(data.data.applicationMaterials);
         setInterviewQuestions(data.data.interviewPrep?.questions || []);
-        // TODO: Populate parsedResume if stored in 'data.resume'
-        // if (data.resume && typeof data.resume === 'object') {
-        //   try {
-        //     setParsedResume(JSON.stringify(data.resume)); // Assuming resume data is stored as an object
-        //     console.log("Resume data loaded from history item for regeneration.");
-        //   } catch (e) {
-        //      console.error("Failed to stringify resume data from history item:", e);
-        //   }
-        // } else {
-        //     console.warn("Resume data not found or not an object in history item. Regeneration might be disabled.");
-        // }
       } else {
         setError(null);
         setResponseData(null);
