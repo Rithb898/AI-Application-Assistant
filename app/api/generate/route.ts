@@ -6,8 +6,8 @@ import { generatePrompt, generateSystemPrompt } from "@/lib/prompt";
 
 // Define primary and fallback models
 const models = {
-  primary: process.env.GROQ_PRIMARY_MODEL || "gemini-2.5-flash-preview-05-20",
-  fallback: process.env.GROQ_FALLBACK_MODEL || "gemini-2.0-flash-lite-001",
+  primary: process.env.PRIMARY_MODEL || "gemini-2.5-flash-preview-05-20",
+  fallback: process.env.FALLBACK_MODEL || "gemini-2.0-flash-lite-001",
 };
 
 // Common configuration for model generation
