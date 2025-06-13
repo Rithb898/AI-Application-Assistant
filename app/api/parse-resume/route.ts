@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import pdfParse from "pdf-parse";
-import { groq } from "@ai-sdk/groq";
+import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { parsedResumePrompt, parseResumeSystemPrompt } from "@/lib/prompt";
 import { resumeSchema } from "@/lib/schema";
 
 const models = {
-  primary: process.env.GROQ_PRIMARY_MODEL || "llama-3.1-8b-instant",
-  fallback: process.env.GROQ_FALLBACK_MODEL || "llama-3.3-70b-versatile",
+  primary: process.env.GROQ_PRIMARY_MODEL || "gemini-2.5-flash-preview-05-20",
+  fallback: process.env.GROQ_FALLBACK_MODEL || "gemini-2.0-flash-lite-001",
 };
 
 // 👇 Ensure this route runs in Node.js runtime (not edge)
@@ -21,7 +21,7 @@ async function tryGenerateResumeObject(modelName: string, parsedText: string) {
   try {
     console.log(`Attempting AI parsing with model: ${modelName}`);
     const { object } = await generateObject({
-      model: groq(modelName),
+      model: google(modelName),
       schema: resumeSchema,
       system: parseResumeSystemPrompt,
       prompt: parsedResumePrompt(parsedText),

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.2.19",
     "@ai-sdk/groq": "^1.2.7",
     "@clerk/nextjs": "^6.15.1",
     "@hookform/resolvers": "^5.0.1",
