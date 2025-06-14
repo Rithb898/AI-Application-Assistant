@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import pdfParse from "pdf-parse";
-import { google } from "@ai-sdk/google";
+import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { parsedResumePrompt, parseResumeSystemPrompt } from "@/lib/prompt";
 import { resumeSchema } from "@/lib/schema";
 
 const models = {
-  primary: process.env.PRIMARY_MODEL || "gemini-2.5-flash-preview-05-20",
-  fallback: process.env.FALLBACK_MODEL || "gemini-2.0-flash-lite-001",
+  primary: process.env.PRIMARY_MODEL || "llama-3.3-70b-versatile",
+  fallback: process.env.FALLBACK_MODEL || "llama-3.1-8b-instant",
 };
 
 // 👇 Ensure this route runs in Node.js runtime (not edge)
@@ -21,13 +21,13 @@ async function tryGenerateResumeObject(modelName: string, parsedText: string) {
   try {
     console.log(`Attempting AI parsing with model: ${modelName}`);
     const { object } = await generateObject({
-      model: google(modelName),
+      model: groq(modelName),
       schema: resumeSchema,
       system: parseResumeSystemPrompt,
       prompt: parsedResumePrompt(parsedText),
     });
     console.log(
-      `Successfully generated structured resume data with model: ${modelName}`,
+      `Successfully generated structured resume data with model: ${modelName}`
     );
     return object;
   } catch (error: any) {
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   if (file.type !== "application/pdf") {
     return NextResponse.json(
       { error: "Invalid file type. Please upload a PDF." },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       {
         error: `File size exceeds the limit of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
       },
-      { status: 413 },
+      { status: 413 }
     );
   }
 
@@ -78,27 +78,27 @@ export async function POST(req: NextRequest) {
     } catch (primaryError: any) {
       if (primaryError.response?.status === 429) {
         console.log(
-          `Rate limited on primary model, trying fallback model: ${models.fallback}`,
+          `Rate limited on primary model, trying fallback model: ${models.fallback}`
         );
         try {
           // 🤖 Step 5: Use AI to parse the extracted text into a structured JSON format
           const object = await tryGenerateResumeObject(
             models.fallback,
-            parsed.text,
+            parsed.text
           );
           return NextResponse.json(object);
         } catch (fallbackError: any) {
           console.error("Fallback model failed:", fallbackError);
           return NextResponse.json(
             { error: "Fallback AI model failed to parse resume." },
-            { status: 500 },
+            { status: 500 }
           );
         }
       }
       console.error("Primary model failed:", primaryError);
       return NextResponse.json(
         { error: "Primary AI model failed to parse resume." },
-        { status: 500 },
+        { status: 500 }
       );
     }
   } catch (pdfErr) {
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     console.error("PDF parsing failed:", pdfErr);
     return NextResponse.json(
       { error: "Failed to extract text from PDF." },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

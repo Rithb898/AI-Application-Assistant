@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { groq } from "@ai-sdk/groq";
 import { generateObject, NoObjectGeneratedError } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { jobApplicationSchema } from "@/lib/schema";
@@ -6,8 +6,8 @@ import { generatePrompt, generateSystemPrompt } from "@/lib/prompt";
 
 // Define primary and fallback models
 const models = {
-  primary: process.env.PRIMARY_MODEL || "gemini-2.5-flash-preview-05-20",
-  fallback: process.env.FALLBACK_MODEL || "gemini-2.0-flash-lite-001",
+  primary: process.env.PRIMARY_MODEL || "llama-3.3-70b-versatile",
+  fallback: process.env.FALLBACK_MODEL || "llama-3.1-8b-instant",
 };
 
 // Common configuration for model generation
@@ -20,7 +20,7 @@ const getModelConfig = (
   resumeText: string,
   modelName: string,
 ) => ({
-  model: google(modelName),
+  model: groq(modelName),
   schema: jobApplicationSchema,
   system: generateSystemPrompt,
   prompt: generatePrompt(
